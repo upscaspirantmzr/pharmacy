@@ -3,35 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy Management Portal</title>
+    <title>MZR Pharmacy Portal</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            color: #374151;
+            background-color: #f0f4f8; /* Lighter background */
+            color: #2d3748; /* Darker text for better contrast */
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 1rem;
+            padding: 1.5rem; /* Increased padding */
         }
         .card {
             background-color: #ffffff;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            border-radius: 1rem; /* More rounded corners */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Stronger shadow */
+            padding: 2rem; /* Increased padding */
+            margin-bottom: 2rem; /* Increased margin */
+            border: 1px solid #e2e8f0; /* Subtle border */
         }
         .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
+            padding: 0.85rem 1.75rem; /* Slightly larger padding */
+            border-radius: 0.625rem; /* More rounded buttons */
             font-weight: 600;
-            transition: background-color 0.2s ease-in-out;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease-in-out; /* Smooth transition for all properties */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Consistent shadow */
+            display: inline-flex; /* For icon alignment */
+            align-items: center;
+            gap: 0.5rem; /* Space between icon and text */
         }
         .btn-primary {
             background-color: #4f46e5;
@@ -39,11 +45,13 @@
         }
         .btn-primary:hover {
             background-color: #4338ca;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-2px); /* Lift effect */
+            box-shadow: 0 6px 10px rgba(0,0,0,0.15);
         }
-        .btn-primary-active { /* Added for active tab styling */
+        .btn-primary-active {
             background-color: #4338ca;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); /* Inset shadow for active state */
+            transform: translateY(0); /* Reset lift */
         }
         .btn-danger {
             background-color: #ef4444;
@@ -51,7 +59,8 @@
         }
         .btn-danger:hover {
             background-color: #dc2626;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.15);
         }
         .btn-success {
             background-color: #22c55e;
@@ -59,54 +68,63 @@
         }
         .btn-success:hover {
             background-color: #16a34a;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.15);
         }
         .input-field {
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid #d1d5db;
+            padding: 0.85rem 1.25rem; /* Slightly larger padding */
+            border-radius: 0.625rem; /* More rounded inputs */
+            border: 1px solid #cbd5e0; /* Lighter border */
             width: 100%;
             box-sizing: border-box;
             transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            background-color: #f8fafc; /* Light input background */
         }
         .input-field:focus {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+            border-color: #6366f1; /* Stronger focus color */
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2); /* More prominent focus ring */
             outline: none;
         }
         .table-header {
-            background-color: #e5e7eb;
-            font-weight: 600;
+            background-color: #4f46e5; /* Darker indigo for better contrast */
+            color: #ffffff; /* White text for headers */
+            font-weight: 700; /* Bolder font */
             text-align: left;
-            padding: 0.75rem 1rem;
+            padding: 1rem 1.25rem; /* Increased padding */
         }
         .table-row:nth-child(even) {
-            background-color: #f9fafb;
+            background-color: #eef2f6; /* Slightly more distinct alternating row color */
+        }
+        .table-row:hover {
+            background-color: #dbe7f5; /* Hover effect for rows */
+            transition: background-color 0.15s ease-in-out;
         }
         .table-cell {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 1rem 1.25rem; /* Increased padding */
+            border-bottom: 1px solid #e2e8f0; /* Lighter border */
         }
         .message-box {
             position: fixed;
-            top: 1rem;
-            right: 1rem;
-            background-color: #4CAF50; /* Green */
+            top: 1.5rem;
+            right: 1.5rem;
+            background-color: #4CAF50;
             color: white;
-            padding: 15px;
-            border-radius: 5px;
+            padding: 18px 25px; /* Larger padding */
+            border-radius: 8px; /* More rounded */
             z-index: 1000;
-            display: none; /* Hidden by default */
+            display: none;
             opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px); /* Start slightly above */
         }
         .message-box.error {
-            background-color: #f44336; /* Red */
+            background-color: #f44336;
         }
         .message-box.show {
             display: block;
             opacity: 1;
+            transform: translateY(0); /* Slide in effect */
         }
         .modal {
             position: fixed;
@@ -114,7 +132,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -123,39 +141,65 @@
         }
         .modal-content {
             background-color: white;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            padding: 2.5rem; /* More padding */
+            border-radius: 1rem;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); /* Stronger shadow */
             max-width: 500px;
             width: 90%;
             position: relative;
         }
         .close-button {
             position: absolute;
-            top: 1rem;
-            right: 1rem;
+            top: 1.25rem;
+            right: 1.25rem;
             font-size: 1.5rem;
             cursor: pointer;
             color: #6b7280;
         }
         .close-button:hover {
-            color: #374151;
+            color: #1a202c;
         }
-        @media (max-width: 768px) {
-            .flex-col-mobile {
-                flex-direction: column;
-            }
-            .w-full-mobile {
-                width: 100%;
-            }
-            .table-cell {
-                padding: 0.5rem;
-                font-size: 0.875rem;
-            }
-            .btn {
-                padding: 0.5rem 1rem;
-                font-size: 0.875rem;
-            }
+        .grid-card {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .grid-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15);
+        }
+        .grid-card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            color: #4f46e5;
+        }
+        .grid-card-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        .grid-card-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        /* Added for MZR Pharmacy branding on login page */
+        .mzr-logo {
+            font-size: 3rem;
+            color: #4f46e5;
+            margin-bottom: 1rem;
+        }
+        .mzr-pharmacy-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 1.5rem;
         }
     </style>
 </head>
@@ -165,6 +209,10 @@
     <!-- Login/Auth Section -->
     <div id="authSection" class="container mt-8 flex-grow flex items-center justify-center">
         <div class="card w-full max-w-md">
+            <div class="text-center">
+                <i class="fas fa-prescription-bottle-alt mzr-logo"></i>
+                <div class="mzr-pharmacy-name">MZR Pharmacy</div>
+            </div>
             <h2 class="text-2xl font-bold text-center mb-6 text-indigo-700">Admin Login</h2>
             <div class="mb-4">
                 <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-2">Email:</label>
@@ -174,7 +222,7 @@
                 <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-2">Password:</label>
                 <input type="password" id="loginPassword" class="input-field" placeholder="Enter your password">
             </div>
-            <button id="loginBtn" class="btn btn-primary w-full">Login</button>
+            <button id="loginBtn" class="btn btn-primary w-full"><i class="fas fa-sign-in-alt"></i> Login</button>
             <p class="text-sm text-gray-600 text-center mt-4">
                 Use your Firebase registered admin email and password.
             </p>
@@ -187,20 +235,50 @@
             <h1 class="text-3xl font-bold text-indigo-700">Pharmacy Portal</h1>
             <div class="flex items-center space-x-4">
                 <span id="userIdDisplay" class="text-sm text-gray-600">User ID: Loading...</span>
-                <button id="logoutBtn" class="btn btn-danger">Logout</button>
+                <button id="logoutBtn" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
         </header>
 
         <!-- Navigation Tabs -->
         <div class="flex flex-wrap gap-4 mb-6">
-            <button id="stockTabBtn" class="btn btn-primary btn-primary-active">Stock Management</button>
-            <button id="billingTabBtn" class="btn btn-primary">Billing</button>
-            <button id="salesReportTabBtn" class="btn btn-primary">Sales Reports</button>
-            <button id="inventoryReportTabBtn" class="btn btn-primary">Inventory Reports</button>
+            <button id="dashboardTabBtn" class="btn btn-primary btn-primary-active"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+            <button id="stockTabBtn" class="btn btn-primary"><i class="fas fa-boxes"></i> Stock Management</button>
+            <button id="billingTabBtn" class="btn btn-primary"><i class="fas fa-file-invoice-dollar"></i> Billing</button>
+            <button id="salesReportTabBtn" class="btn btn-primary"><i class="fas fa-chart-line"></i> Sales Reports</button>
+            <button id="inventoryReportTabBtn" class="btn btn-primary"><i class="fas fa-warehouse"></i> Inventory Reports</button>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" class="tab-content">
+            <div class="card">
+                <h2 class="text-2xl font-bold mb-6 text-indigo-600">Overview Dashboard</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="grid-card">
+                        <i class="fas fa-pills grid-card-icon text-blue-500"></i>
+                        <div class="grid-card-value" id="totalMedicinesCount">0</div>
+                        <div class="grid-card-label">Total Medicines</div>
+                    </div>
+                    <div class="grid-card">
+                        <i class="fas fa-exclamation-triangle grid-card-icon text-red-500"></i>
+                        <div class="grid-card-value" id="lowStockCount">0</div>
+                        <div class="grid-card-label">Low Stock Items</div>
+                    </div>
+                    <div class="grid-card">
+                        <i class="fas fa-calendar-times grid-card-icon text-orange-500"></i>
+                        <div class="grid-card-value" id="expiringSoonCount">0</div>
+                        <div class="grid-card-label">Expiring Soon</div>
+                    </div>
+                    <div class="grid-card">
+                        <i class="fas fa-dollar-sign grid-card-icon text-green-500"></i>
+                        <div class="grid-card-value" id="todaySalesTotal">₹0.00</div>
+                        <div class="grid-card-label">Today's Sales</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Stock Management Section -->
-        <div id="stockSection" class="tab-content">
+        <div id="stockSection" class="tab-content hidden">
             <div class="card">
                 <h2 class="text-2xl font-bold mb-4 text-indigo-600">Add New Medicine</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -225,7 +303,7 @@
                         <input type="number" id="price" class="input-field" value="0.00" min="0" step="0.01">
                     </div>
                 </div>
-                <button id="addMedicineBtn" class="btn btn-success w-full md:w-auto">Add Medicine</button>
+                <button id="addMedicineBtn" class="btn btn-success w-full md:w-auto"><i class="fas fa-plus-circle"></i> Add Medicine</button>
             </div>
 
             <div class="card">
@@ -300,7 +378,7 @@
                     <span id="grandTotal" class="text-2xl font-extrabold text-indigo-700 ml-2">₹0.00</span>
                 </div>
 
-                <button id="generateBillBtn" class="btn btn-success w-full md:w-auto">Generate Bill & Print Invoice</button>
+                <button id="generateBillBtn" class="btn btn-success w-full md:w-auto"><i class="fas fa-receipt"></i> Generate Bill & Print Invoice</button>
             </div>
         </div>
 
@@ -317,7 +395,7 @@
                         <label for="endDate" class="block text-sm font-medium text-gray-700 mb-2">End Date:</label>
                         <input type="date" id="endDate" class="input-field">
                     </div>
-                    <button id="generateSalesReportBtn" class="btn btn-primary w-full md:w-auto h-12">Generate Report</button>
+                    <button id="generateSalesReportBtn" class="btn btn-primary w-full md:w-auto h-12"><i class="fas fa-file-alt"></i> Generate Report</button>
                 </div>
 
                 <div class="overflow-x-auto rounded-lg shadow-sm mt-6">
@@ -434,7 +512,7 @@
                 <label for="editPrice" class="block text-sm font-medium text-gray-700 mb-2">Price (per unit):</label>
                 <input type="number" id="editPrice" class="input-field" min="0" step="0.01">
             </div>
-            <button id="saveEditBtn" class="btn btn-primary w-full">Save Changes</button>
+            <button id="saveEditBtn" class="btn btn-primary w-full"><i class="fas fa-save"></i> Save Changes</button>
         </div>
     </div>
 
@@ -446,7 +524,7 @@
             <p id="confirmationMessage" class="mb-6 text-gray-700"></p>
             <div class="flex justify-end space-x-4">
                 <button id="cancelConfirmBtn" class="btn btn-secondary bg-gray-300 text-gray-800 hover:bg-gray-400">Cancel</button>
-                <button id="executeConfirmBtn" class="btn btn-danger">Confirm</button>
+                <button id="executeConfirmBtn" class="btn btn-danger"><i class="fas fa-check-circle"></i> Confirm</button>
             </div>
         </div>
     </div>
@@ -460,6 +538,7 @@
         // Variables for application state that need to be accessible across functions
         let currentUserId = null;
         let allMedicines = []; // Cache for all medicines to facilitate search
+        let allBills = []; // Cache for all bills to facilitate sales reports
 
         // --- Firebase Initialization and Authentication ---
         // Using the firebaseConfig provided by the user
@@ -553,6 +632,8 @@
                         errorMessage = "Incorrect password.";
                     } else if (error.code === 'auth/invalid-email') {
                         errorMessage = "Invalid email format.";
+                    } else if (error.code === 'auth/invalid-credential') {
+                        errorMessage = "Invalid email or password. Please try again.";
                     }
                     showMessageBox(errorMessage, 'error');
                 }
@@ -569,11 +650,13 @@
             });
 
             // --- Tab Switching ---
+            const dashboardTabBtn = document.getElementById('dashboardTabBtn');
             const stockTabBtn = document.getElementById('stockTabBtn');
             const billingTabBtn = document.getElementById('billingTabBtn');
             const salesReportTabBtn = document.getElementById('salesReportTabBtn');
             const inventoryReportTabBtn = document.getElementById('inventoryReportTabBtn');
 
+            const dashboardSection = document.getElementById('dashboardSection');
             const stockSection = document.getElementById('stockSection');
             const billingSection = document.getElementById('billingSection');
             const salesReportSection = document.getElementById('salesReportSection');
@@ -582,12 +665,14 @@
 
             function showTab(tabToShow) {
                 // Hide all sections
+                dashboardSection.classList.add('hidden');
                 stockSection.classList.add('hidden');
                 billingSection.classList.add('hidden');
                 salesReportSection.classList.add('hidden');
                 inventoryReportSection.classList.add('hidden');
 
                 // Deactivate all tab buttons
+                dashboardTabBtn.classList.remove('btn-primary-active');
                 stockTabBtn.classList.remove('btn-primary-active');
                 billingTabBtn.classList.remove('btn-primary-active');
                 salesReportTabBtn.classList.remove('btn-primary-active');
@@ -595,7 +680,11 @@
 
 
                 // Show the selected section and activate its button
-                if (tabToShow === 'stock') {
+                if (tabToShow === 'dashboard') {
+                    dashboardSection.classList.remove('hidden');
+                    dashboardTabBtn.classList.add('btn-primary-active');
+                    updateDashboard(db); // Update dashboard when tab is opened
+                } else if (tabToShow === 'stock') {
                     stockSection.classList.remove('hidden');
                     stockTabBtn.classList.add('btn-primary-active');
                 } else if (tabToShow === 'billing') {
@@ -604,24 +693,23 @@
                 } else if (tabToShow === 'sales') {
                     salesReportSection.classList.remove('hidden');
                     salesReportTabBtn.classList.add('btn-primary-active');
-                    // Generate sales report when tab is opened
-                    generateSalesReport(db);
+                    generateSalesReport(db); // Generate sales report when tab is opened
                 } else if (tabToShow === 'inventory') {
                     inventoryReportSection.classList.remove('hidden');
                     inventoryReportTabBtn.classList.add('btn-primary-active');
-                    // Generate inventory report when tab is opened
                     generateInventoryReport(); // This uses allMedicines which is kept updated by onSnapshot
                 }
             }
 
+            dashboardTabBtn.addEventListener('click', () => showTab('dashboard'));
             stockTabBtn.addEventListener('click', () => showTab('stock'));
             billingTabBtn.addEventListener('click', () => showTab('billing'));
             salesReportTabBtn.addEventListener('click', () => showTab('sales'));
             inventoryReportTabBtn.addEventListener('click', () => showTab('inventory'));
 
 
-            // Initially show stock tab
-            showTab('stock');
+            // Initially show dashboard tab
+            showTab('dashboard');
 
             // --- Stock Management Functions ---
             const medicineListEl = document.getElementById('medicineList');
@@ -645,8 +733,8 @@
                         <td class="table-cell">${medicine.quantity}</td>
                         <td class="table-cell">₹${medicine.price.toFixed(2)}</td>
                         <td class="table-cell flex flex-col sm:flex-row gap-2">
-                            <button class="btn btn-primary btn-sm" onclick="openEditModal('${medicine.id}', '${medicine.name}', '${medicine.batchNo}', '${medicine.expiryDate}', ${medicine.quantity}, ${medicine.price})">Edit</button>
-                            <button class="btn btn-danger btn-sm" onclick="showConfirmationModal('Are you sure you want to delete ${medicine.name}?', () => deleteMedicine('${medicine.id}', db))">Delete</button>
+                            <button class="btn btn-primary btn-sm" onclick="openEditModal('${medicine.id}', '${medicine.name}', '${medicine.batchNo}', '${medicine.expiryDate}', ${medicine.quantity}, ${medicine.price})"><i class="fas fa-edit"></i> Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="showConfirmationModal('Are you sure you want to delete ${medicine.name}?', () => deleteMedicine('${medicine.id}', db))"><i class="fas fa-trash-alt"></i> Delete</button>
                         </td>
                     `;
                     medicineListEl.appendChild(row);
@@ -768,11 +856,12 @@
                 renderMedicines(filteredMedicines);
             });
 
-            // Firestore Realtime Listener for Medicines (now accepts db as argument)
+            // Firestore Realtime Listener for Medicines and Bills
             function setupFirestoreListeners(dbInstance) {
                 if (currentUserId) {
-                    const q = collection(dbInstance, `artifacts/${appId}/users/${currentUserId}/medicines`);
-                    onSnapshot(q, (snapshot) => {
+                    // Listener for Medicines
+                    const medicinesQ = collection(dbInstance, `artifacts/${appId}/users/${currentUserId}/medicines`);
+                    onSnapshot(medicinesQ, (snapshot) => {
                         const medicines = [];
                         snapshot.forEach(doc => {
                             medicines.push({ id: doc.id, ...doc.data() });
@@ -780,13 +869,36 @@
                         allMedicines = medicines; // Update the cache
                         renderMedicines(medicines);
                         renderBillSearchResults(medicines); // Also update search results for billing
-                        // Re-generate inventory report if currently on that tab
+                        // Update dashboard and inventory reports if currently on those tabs
+                        if (!dashboardSection.classList.contains('hidden')) {
+                            updateDashboard(dbInstance);
+                        }
                         if (!inventoryReportSection.classList.contains('hidden')) {
                             generateInventoryReport();
                         }
                     }, (error) => {
                         console.error("Error fetching medicines:", error);
                         showMessageBox(`Error loading medicines: ${error.message}`, 'error');
+                    });
+
+                    // Listener for Bills
+                    const billsQ = collection(dbInstance, `artifacts/${appId}/users/${currentUserId}/bills`);
+                    onSnapshot(billsQ, (snapshot) => {
+                        const bills = [];
+                        snapshot.forEach(doc => {
+                            bills.push({ id: doc.id, ...doc.data() });
+                        });
+                        allBills = bills; // Update the cache
+                        // Update dashboard and sales reports if currently on those tabs
+                        if (!dashboardSection.classList.contains('hidden')) {
+                            updateDashboard(dbInstance);
+                        }
+                        if (!salesReportSection.classList.contains('hidden')) {
+                            generateSalesReport(dbInstance);
+                        }
+                    }, (error) => {
+                        console.error("Error fetching bills:", error);
+                        showMessageBox(`Error loading sales data: ${error.message}`, 'error');
                     });
                 }
             }
@@ -827,7 +939,7 @@
                             <p class="text-md font-semibold text-gray-800">Price: ₹${medicine.price.toFixed(2)} / unit</p>
                         </div>
                         <button class="btn btn-primary" onclick="addToCart('${medicine.id}')" ${availableQuantity <= 0 ? 'disabled' : ''}>
-                            Add to Cart
+                            <i class="fas fa-cart-plus"></i> Add to Cart
                         </button>
                     `;
                     billSearchResultsEl.appendChild(card);
@@ -898,7 +1010,7 @@
                         </td>
                         <td class="table-cell">₹${itemTotal.toFixed(2)}</td>
                         <td class="table-cell">
-                            <button class="btn btn-danger btn-sm" onclick="showConfirmationModal('Remove ${item.name} from cart?', () => removeFromCart('${item.id}'))">Remove</button>
+                            <button class="btn btn-danger btn-sm" onclick="showConfirmationModal('Remove ${item.name} from cart?', () => removeFromCart('${item.id}'))"><i class="fas fa-times-circle"></i> Remove</button>
                         </td>
                     `;
                     cartItemsEl.appendChild(row);
@@ -1017,41 +1129,49 @@
             // Generate Invoice Function
             function generateInvoice(billData) {
                 let invoiceContent = `
-                    <div style="font-family: 'Inter', sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-                        <h2 style="text-align: center; color: #4f46e5; margin-bottom: 20px;">Invoice</h2>
-                        <p><strong>Customer Name:</strong> ${billData.customerName}</p>
-                        <p><strong>Date:</strong> ${new Date(billData.billDate.toDate ? billData.billDate.toDate() : billData.billDate).toLocaleDateString()} ${new Date(billData.billDate.toDate ? billData.billDate.toDate() : billData.billDate).toLocaleTimeString()}</p>
-                        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 20px 0;">
-                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <div style="font-family: 'Inter', sans-serif; padding: 25px; max-width: 650px; margin: 0 auto; border: 2px solid #4f46e5; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
+                        <div style="text-align: center; margin-bottom: 25px;">
+                            <h1 style="font-size: 2.5rem; color: #4f46e5; font-weight: 800; margin-bottom: 5px;">MZR Pharmacy</h1>
+                            <p style="font-size: 1.1rem; color: #6b7280;">Your trusted health partner</p>
+                        </div>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                        <h2 style="text-align: center; color: #374151; margin-bottom: 20px; font-size: 1.8rem; font-weight: 700;">Invoice</h2>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 1rem;">
+                            <p><strong>Customer Name:</strong> ${billData.customerName}</p>
+                            <p><strong>Date:</strong> ${new Date(billData.billDate.toDate ? billData.billDate.toDate() : billData.billDate).toLocaleDateString()}</p>
+                        </div>
+                        <p style="font-size: 1rem; margin-bottom: 20px;"><strong>Time:</strong> ${new Date(billData.billDate.toDate ? billData.billDate.toDate() : billData.billDate).toLocaleTimeString()}</p>
+                        <hr style="border: 0; border-top: 1px dashed #cbd5e0; margin: 25px 0;">
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
                             <thead>
-                                <tr style="background-color: #e5e7eb;">
-                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Medicine</th>
-                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Qty</th>
-                                    <th style="padding: 8px; text-align: right; border-bottom: 1px solid #ddd;">Price</th>
-                                    <th style="padding: 8px; text-align: right; border-bottom: 1px solid #ddd;">Total</th>
+                                <tr style="background-color: #e0e7ff; color: #374151; font-weight: 700;">
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #d1d5db; border-top: 1px solid #d1d5db;">Medicine</th>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #d1d5db; border-top: 1px solid #d1d5db;">Qty</th>
+                                    <th style="padding: 12px; text-align: right; border-bottom: 1px solid #d1d5db; border-top: 1px solid #d1d5db;">Price</th>
+                                    <th style="padding: 12px; text-align: right; border-bottom: 1px solid #d1d5db; border-top: 1px solid #d1d5db;">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${billData.items.map(item => `
                                     <tr>
-                                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name} (${item.batchNo})</td>
-                                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.quantity}</td>
-                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">₹${item.price.toFixed(2)}</td>
-                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">₹${item.total.toFixed(2)}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #f0f4f8;">${item.name} (${item.batchNo})</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #f0f4f8;">${item.quantity}</td>
+                                        <td style="padding: 10px; text-align: right; border-bottom: 1px solid #f0f4f8;">₹${item.price.toFixed(2)}</td>
+                                        <td style="padding: 10px; text-align: right; border-bottom: 1px solid #f0f4f8;">₹${item.total.toFixed(2)}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
                         </table>
-                        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 20px 0;">
-                        <div style="text-align: right; font-size: 1.2em; font-weight: bold; color: #374151;">
-                            Grand Total: ₹${billData.grandTotal.toFixed(2)}
+                        <hr style="border: 0; border-top: 2px dashed #4f46e5; margin: 30px 0;">
+                        <div style="text-align: right; font-size: 1.8em; font-weight: bold; color: #374151; padding-top: 10px;">
+                            Grand Total: <span style="color: #22c55e;">₹${billData.grandTotal.toFixed(2)}</span>
                         </div>
-                        <p style="text-align: center; margin-top: 30px; font-size: 0.9em; color: #6b7280;">Thank you for your business!</p>
+                        <p style="text-align: center; margin-top: 40px; font-size: 0.95em; color: #6b7280;">Thank you for your business! Visit us again.</p>
                     </div>
                 `;
 
                 const printWindow = window.open('', '', 'height=600,width=800');
-                printWindow.document.write('<html><head><title>Invoice</title>');
+                printWindow.document.write('<html><head><title>MZR Pharmacy Invoice</title>');
                 printWindow.document.write('<style>body { font-family: \'Inter\', sans-serif; margin: 0; padding: 20px; } table { width: 100%; border-collapse: collapse; } th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; } th { background-color: #f2f2f2; } .total { text-align: right; font-weight: bold; }</style>');
                 printWindow.document.write('</head><body>');
                 printWindow.document.write(invoiceContent);
@@ -1086,27 +1206,16 @@
                 salesReportListEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Loading sales data...</td></tr>`;
 
                 try {
-                    let q = collection(dbInstance, `artifacts/${appId}/users/${currentUserId}/bills`);
-                    // Note: Firestore queries for range on a single field (billDate) are efficient.
-                    // For more complex filtering (e.g., by customerName AND date), you might need composite indexes in Firestore.
-                    // For simplicity, we'll fetch all and filter in memory if only one date is provided.
-                    // If both dates are provided, we'll use a range query.
-                    if (startDate && endDate) {
-                         // Add 23 hours, 59 minutes, 59 seconds to endDate to include the whole day
-                        const adjustedEndDate = new Date(endDate);
+                    let sales = [];
+                    // Filter in-memory using allBills cache
+                    const adjustedEndDate = endDate ? new Date(endDate) : null;
+                    if (adjustedEndDate) {
                         adjustedEndDate.setHours(23, 59, 59, 999);
-                        q = query(q, where('billDate', '>=', startDate), where('billDate', '<=', adjustedEndDate));
                     }
 
-                    const querySnapshot = await getDocs(q);
-                    let sales = [];
-                    querySnapshot.forEach(doc => {
-                        const data = doc.data();
-                        // Filter in-memory if only one date is provided, or if no dates are provided
-                        const billDate = data.billDate.toDate ? data.billDate.toDate() : data.billDate; // Handle Firebase Timestamp vs Date object
-                        if ((!startDate || billDate >= startDate) && (!endDate || billDate <= adjustedEndDate)) {
-                            sales.push({ id: doc.id, ...data, billDate: billDate });
-                        }
+                    sales = allBills.filter(bill => {
+                        const billDate = bill.billDate.toDate ? bill.billDate.toDate() : bill.billDate;
+                        return (!startDate || billDate >= startDate) && (!adjustedEndDate || billDate <= adjustedEndDate);
                     });
 
                     // Sort sales by date descending
@@ -1124,7 +1233,7 @@
                         const itemsSummary = bill.items.map(item => `${item.name} (x${item.quantity})`).join(', ');
                         row.innerHTML = `
                             <td class="table-cell text-sm">${bill.id.substring(0, 6)}...</td>
-                            <td class="table-cell text-sm">${bill.billDate.toLocaleDateString()}</td>
+                            <td class="table-cell text-sm">${new Date(bill.billDate.toDate ? bill.billDate.toDate() : bill.billDate).toLocaleDateString()}</td>
                             <td class="table-cell text-sm">${bill.customerName}</td>
                             <td class="table-cell text-sm">${itemsSummary}</td>
                             <td class="table-cell text-right font-semibold">₹${bill.grandTotal.toFixed(2)}</td>
@@ -1220,6 +1329,59 @@
                 if (!hasAllInventory) {
                     allInventoryListEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No medicines in inventory.</td></tr>`;
                 }
+            }
+
+            // --- Dashboard Functions ---
+            const totalMedicinesCountEl = document.getElementById('totalMedicinesCount');
+            const lowStockCountEl = document.getElementById('lowStockCount');
+            const expiringSoonCountEl = document.getElementById('expiringSoonCount');
+            const todaySalesTotalEl = document.getElementById('todaySalesTotal');
+
+            async function updateDashboard(dbInstance) {
+                if (!currentUserId) {
+                    totalMedicinesCountEl.textContent = 'N/A';
+                    lowStockCountEl.textContent = 'N/A';
+                    expiringSoonCountEl.textContent = 'N/A';
+                    todaySalesTotalEl.textContent = '₹0.00';
+                    return;
+                }
+
+                // Update Total Medicines
+                totalMedicinesCountEl.textContent = allMedicines.length;
+
+                // Update Low Stock Count
+                const lowStockThreshold = 10;
+                const lowStockItems = allMedicines.filter(m => m.quantity < lowStockThreshold);
+                lowStockCountEl.textContent = lowStockItems.length;
+
+                // Update Expiring Soon Count
+                const expiryWarningDays = 90;
+                const now = new Date();
+                const expiringSoonDate = new Date();
+                expiringSoonDate.setDate(now.getDate() + expiryWarningDays);
+                const expiringItems = allMedicines.filter(m => {
+                    const expiry = new Date(m.expiryDate);
+                    return expiry > now && expiry <= expiringSoonDate;
+                });
+                expiringSoonCountEl.textContent = expiringItems.length;
+
+                // Calculate Today's Sales
+                let todaySales = 0;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Start of today
+
+                const endOfToday = new Date();
+                endOfToday.setHours(23, 59, 59, 999); // End of today
+
+                const salesToday = allBills.filter(bill => {
+                    const billDate = bill.billDate.toDate ? bill.billDate.toDate() : bill.billDate;
+                    return billDate >= today && billDate <= endOfToday;
+                });
+
+                salesToday.forEach(bill => {
+                    todaySales += bill.grandTotal;
+                });
+                todaySalesTotalEl.textContent = `₹${todaySales.toFixed(2)}`;
             }
 
             // Initial render of cart (empty)
