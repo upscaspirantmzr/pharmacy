@@ -31,6 +31,7 @@
             border-radius: 0.5rem;
             font-weight: 600;
             transition: background-color 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .btn-primary {
             background-color: #4f46e5;
@@ -38,6 +39,11 @@
         }
         .btn-primary:hover {
             background-color: #4338ca;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .btn-primary-active { /* Added for active tab styling */
+            background-color: #4338ca;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
         .btn-danger {
             background-color: #ef4444;
@@ -45,6 +51,7 @@
         }
         .btn-danger:hover {
             background-color: #dc2626;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         .btn-success {
             background-color: #22c55e;
@@ -52,6 +59,7 @@
         }
         .btn-success:hover {
             background-color: #16a34a;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         .input-field {
             padding: 0.75rem 1rem;
@@ -59,6 +67,12 @@
             border: 1px solid #d1d5db;
             width: 100%;
             box-sizing: border-box;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .input-field:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+            outline: none;
         }
         .table-header {
             background-color: #e5e7eb;
@@ -85,6 +99,7 @@
             display: none; /* Hidden by default */
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .message-box.error {
             background-color: #f44336; /* Red */
@@ -121,6 +136,10 @@
             right: 1rem;
             font-size: 1.5rem;
             cursor: pointer;
+            color: #6b7280;
+        }
+        .close-button:hover {
+            color: #374151;
         }
         @media (max-width: 768px) {
             .flex-col-mobile {
@@ -146,18 +165,18 @@
     <!-- Login/Auth Section -->
     <div id="authSection" class="container mt-8 flex-grow flex items-center justify-center">
         <div class="card w-full max-w-md">
-            <h2 class="text-2xl font-bold text-center mb-6">Admin Login</h2>
+            <h2 class="text-2xl font-bold text-center mb-6 text-indigo-700">Admin Login</h2>
             <div class="mb-4">
                 <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-2">Email:</label>
-                <input type="email" id="loginEmail" class="input-field" placeholder="admin@example.com">
+                <input type="email" id="loginEmail" class="input-field" placeholder="Enter your registered email">
             </div>
             <div class="mb-6">
                 <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-2">Password:</label>
-                <input type="password" id="loginPassword" class="input-field" placeholder="password">
+                <input type="password" id="loginPassword" class="input-field" placeholder="Enter your password">
             </div>
             <button id="loginBtn" class="btn btn-primary w-full">Login</button>
             <p class="text-sm text-gray-600 text-center mt-4">
-                Use admin@example.com / password to log in.
+                Use your Firebase registered admin email and password.
             </p>
         </div>
     </div>
@@ -174,8 +193,10 @@
 
         <!-- Navigation Tabs -->
         <div class="flex flex-wrap gap-4 mb-6">
-            <button id="stockTabBtn" class="btn btn-primary">Stock Management</button>
+            <button id="stockTabBtn" class="btn btn-primary btn-primary-active">Stock Management</button>
             <button id="billingTabBtn" class="btn btn-primary">Billing</button>
+            <button id="salesReportTabBtn" class="btn btn-primary">Sales Reports</button>
+            <button id="inventoryReportTabBtn" class="btn btn-primary">Inventory Reports</button>
         </div>
 
         <!-- Stock Management Section -->
@@ -282,6 +303,109 @@
                 <button id="generateBillBtn" class="btn btn-success w-full md:w-auto">Generate Bill & Print Invoice</button>
             </div>
         </div>
+
+        <!-- Sales Reports Section -->
+        <div id="salesReportSection" class="tab-content hidden">
+            <div class="card">
+                <h2 class="text-2xl font-bold mb-4 text-indigo-600">Sales Reports</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-end">
+                    <div>
+                        <label for="startDate" class="block text-sm font-medium text-gray-700 mb-2">Start Date:</label>
+                        <input type="date" id="startDate" class="input-field">
+                    </div>
+                    <div>
+                        <label for="endDate" class="block text-sm font-medium text-gray-700 mb-2">End Date:</label>
+                        <input type="date" id="endDate" class="input-field">
+                    </div>
+                    <button id="generateSalesReportBtn" class="btn btn-primary w-full md:w-auto h-12">Generate Report</button>
+                </div>
+
+                <div class="overflow-x-auto rounded-lg shadow-sm mt-6">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th class="table-header">Bill ID</th>
+                                <th class="table-header">Date</th>
+                                <th class="table-header">Customer Name</th>
+                                <th class="table-header">Items</th>
+                                <th class="table-header text-right">Total Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesReportList">
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-gray-500">Generate a report to see sales data.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Reports Section -->
+        <div id="inventoryReportSection" class="tab-content hidden">
+            <div class="card">
+                <h2 class="text-2xl font-bold mb-4 text-indigo-600">Inventory Reports</h2>
+
+                <h3 class="text-xl font-bold mb-3 text-gray-800">Low Stock Medicines (< 10 units)</h3>
+                <div class="overflow-x-auto rounded-lg shadow-sm mb-6">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th class="table-header">Name</th>
+                                <th class="table-header">Batch No</th>
+                                <th class="table-header">Quantity</th>
+                                <th class="table-header">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lowStockList">
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-gray-500">No low stock medicines.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-xl font-bold mb-3 text-gray-800">Medicines Expiring Soon (within 90 days)</h3>
+                <div class="overflow-x-auto rounded-lg shadow-sm mb-6">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th class="table-header">Name</th>
+                                <th class="table-header">Batch No</th>
+                                <th class="table-header">Expiry Date</th>
+                                <th class="table-header">Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expiringSoonList">
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-gray-500">No medicines expiring soon.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-xl font-bold mb-3 text-gray-800">All Current Stock Overview</h3>
+                <div class="overflow-x-auto rounded-lg shadow-sm">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th class="table-header">Name</th>
+                                <th class="table-header">Batch No</th>
+                                <th class="table-header">Expiry Date</th>
+                                <th class="table-header">Quantity</th>
+                                <th class="table-header">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allInventoryList">
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-gray-500">No medicines in inventory.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Edit Medicine Modal -->
@@ -330,7 +454,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Variables for application state that need to be accessible across functions
@@ -389,20 +513,6 @@
             const db = getFirestore(app);
             const auth = getAuth(app);
 
-            // Sign in anonymously or with custom token
-            if (typeof __initial_auth_token !== 'undefined') {
-                signInWithCustomToken(auth, __initial_auth_token)
-                    .then(() => console.log("Signed in with custom token"))
-                    .catch((error) => {
-                        console.error("Error signing in with custom token:", error);
-                        signInAnonymously(auth).then(() => console.log("Signed in anonymously")).catch(console.error);
-                    });
-            } else {
-                signInAnonymously(auth)
-                    .then(() => console.log("Signed in anonymously"))
-                    .catch(console.error);
-            }
-
             // Auth state change listener
             onAuthStateChanged(auth, (user) => {
                 if (user) {
@@ -424,17 +534,27 @@
             document.getElementById('loginBtn').addEventListener('click', async () => {
                 const email = document.getElementById('loginEmail').value;
                 const password = document.getElementById('loginPassword').value;
+
+                if (!email || !password) {
+                    showMessageBox("Please enter both email and password.", 'error');
+                    return;
+                }
+
                 try {
-                    // For demonstration, we'll use a hardcoded admin email/password.
-                    // In a real app, you'd create this user in Firebase Authentication.
-                    if (email === "admin@example.com" && password === "password") {
-                        await signInWithEmailAndPassword(auth, email, password);
-                    } else {
-                        showMessageBox("Invalid credentials. Please use admin@example.com / password.", 'error');
-                    }
+                    // Authenticate directly with Firebase using provided credentials
+                    await signInWithEmailAndPassword(auth, email, password);
+                    // onAuthStateChanged will handle UI update if login is successful
                 } catch (error) {
                     console.error("Login Error:", error);
-                    showMessageBox(`Login failed: ${error.message}`, 'error');
+                    let errorMessage = "Login failed. Please check your credentials.";
+                    if (error.code === 'auth/user-not-found') {
+                        errorMessage = "No user found with this email.";
+                    } else if (error.code === 'auth/wrong-password') {
+                        errorMessage = "Incorrect password.";
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = "Invalid email format.";
+                    }
+                    showMessageBox(errorMessage, 'error');
                 }
             });
 
@@ -451,26 +571,54 @@
             // --- Tab Switching ---
             const stockTabBtn = document.getElementById('stockTabBtn');
             const billingTabBtn = document.getElementById('billingTabBtn');
+            const salesReportTabBtn = document.getElementById('salesReportTabBtn');
+            const inventoryReportTabBtn = document.getElementById('inventoryReportTabBtn');
+
             const stockSection = document.getElementById('stockSection');
             const billingSection = document.getElementById('billingSection');
+            const salesReportSection = document.getElementById('salesReportSection');
+            const inventoryReportSection = document.getElementById('inventoryReportSection');
+
 
             function showTab(tabToShow) {
+                // Hide all sections
                 stockSection.classList.add('hidden');
                 billingSection.classList.add('hidden');
-                stockTabBtn.classList.remove('btn-primary-active'); // Add a class for active state if needed
-                billingTabBtn.classList.remove('btn-primary-active');
+                salesReportSection.classList.add('hidden');
+                inventoryReportSection.classList.add('hidden');
 
+                // Deactivate all tab buttons
+                stockTabBtn.classList.remove('btn-primary-active');
+                billingTabBtn.classList.remove('btn-primary-active');
+                salesReportTabBtn.classList.remove('btn-primary-active');
+                inventoryReportTabBtn.classList.remove('btn-primary-active');
+
+
+                // Show the selected section and activate its button
                 if (tabToShow === 'stock') {
                     stockSection.classList.remove('hidden');
                     stockTabBtn.classList.add('btn-primary-active');
                 } else if (tabToShow === 'billing') {
                     billingSection.classList.remove('hidden');
                     billingTabBtn.classList.add('btn-primary-active');
+                } else if (tabToShow === 'sales') {
+                    salesReportSection.classList.remove('hidden');
+                    salesReportTabBtn.classList.add('btn-primary-active');
+                    // Generate sales report when tab is opened
+                    generateSalesReport(db);
+                } else if (tabToShow === 'inventory') {
+                    inventoryReportSection.classList.remove('hidden');
+                    inventoryReportTabBtn.classList.add('btn-primary-active');
+                    // Generate inventory report when tab is opened
+                    generateInventoryReport(); // This uses allMedicines which is kept updated by onSnapshot
                 }
             }
 
             stockTabBtn.addEventListener('click', () => showTab('stock'));
             billingTabBtn.addEventListener('click', () => showTab('billing'));
+            salesReportTabBtn.addEventListener('click', () => showTab('sales'));
+            inventoryReportTabBtn.addEventListener('click', () => showTab('inventory'));
+
 
             // Initially show stock tab
             showTab('stock');
@@ -632,6 +780,10 @@
                         allMedicines = medicines; // Update the cache
                         renderMedicines(medicines);
                         renderBillSearchResults(medicines); // Also update search results for billing
+                        // Re-generate inventory report if currently on that tab
+                        if (!inventoryReportSection.classList.contains('hidden')) {
+                            generateInventoryReport();
+                        }
                     }, (error) => {
                         console.error("Error fetching medicines:", error);
                         showMessageBox(`Error loading medicines: ${error.message}`, 'error');
@@ -810,7 +962,8 @@
 
                 // Check stock availability one last time before processing
                 for (const item of cart) {
-                    const currentStock = allMedicines.find(m => m.id === item.id)?.quantity || 0;
+                    const currentMedicine = allMedicines.find(m => m.id === item.id);
+                    const currentStock = currentMedicine?.quantity || 0;
                     if (item.quantity > currentStock) {
                         showMessageBox(`Error: Not enough stock for ${item.name}. Available: ${currentStock}, Requested: ${item.quantity}.`, 'error');
                         return; // Stop processing if any item is out of stock
@@ -867,7 +1020,7 @@
                     <div style="font-family: 'Inter', sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
                         <h2 style="text-align: center; color: #4f46e5; margin-bottom: 20px;">Invoice</h2>
                         <p><strong>Customer Name:</strong> ${billData.customerName}</p>
-                        <p><strong>Date:</strong> ${new Date(billData.billDate).toLocaleDateString()} ${new Date(billData.billDate).toLocaleTimeString()}</p>
+                        <p><strong>Date:</strong> ${new Date(billData.billDate.toDate ? billData.billDate.toDate() : billData.billDate).toLocaleDateString()} ${new Date(billData.billDate.toDate ? billData.billDate.toDate() : billData.billDate).toLocaleTimeString()}</p>
                         <hr style="border: 0; border-top: 1px dashed #ccc; margin: 20px 0;">
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                             <thead>
@@ -905,6 +1058,168 @@
                 printWindow.document.write('</body></html>');
                 printWindow.document.close();
                 printWindow.print();
+            }
+
+            // --- Sales Report Functions ---
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const generateSalesReportBtn = document.getElementById('generateSalesReportBtn');
+            const salesReportListEl = document.getElementById('salesReportList');
+
+            generateSalesReportBtn.addEventListener('click', () => generateSalesReport(db));
+
+            async function generateSalesReport(dbInstance) {
+                if (!currentUserId) {
+                    salesReportListEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Please log in to view sales reports.</td></tr>`;
+                    showMessageBox("Please log in to view sales reports.", 'error');
+                    return;
+                }
+
+                const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
+                const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+
+                if (startDate && endDate && startDate > endDate) {
+                    showMessageBox("Start date cannot be after end date.", 'error');
+                    return;
+                }
+
+                salesReportListEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Loading sales data...</td></tr>`;
+
+                try {
+                    let q = collection(dbInstance, `artifacts/${appId}/users/${currentUserId}/bills`);
+                    // Note: Firestore queries for range on a single field (billDate) are efficient.
+                    // For more complex filtering (e.g., by customerName AND date), you might need composite indexes in Firestore.
+                    // For simplicity, we'll fetch all and filter in memory if only one date is provided.
+                    // If both dates are provided, we'll use a range query.
+                    if (startDate && endDate) {
+                         // Add 23 hours, 59 minutes, 59 seconds to endDate to include the whole day
+                        const adjustedEndDate = new Date(endDate);
+                        adjustedEndDate.setHours(23, 59, 59, 999);
+                        q = query(q, where('billDate', '>=', startDate), where('billDate', '<=', adjustedEndDate));
+                    }
+
+                    const querySnapshot = await getDocs(q);
+                    let sales = [];
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        // Filter in-memory if only one date is provided, or if no dates are provided
+                        const billDate = data.billDate.toDate ? data.billDate.toDate() : data.billDate; // Handle Firebase Timestamp vs Date object
+                        if ((!startDate || billDate >= startDate) && (!endDate || billDate <= adjustedEndDate)) {
+                            sales.push({ id: doc.id, ...data, billDate: billDate });
+                        }
+                    });
+
+                    // Sort sales by date descending
+                    sales.sort((a, b) => b.billDate - a.billDate);
+
+                    salesReportListEl.innerHTML = ''; // Clear loading message
+                    if (sales.length === 0) {
+                        salesReportListEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No sales found for the selected period.</td></tr>`;
+                        return;
+                    }
+
+                    sales.forEach(bill => {
+                        const row = document.createElement('tr');
+                        row.classList.add('table-row');
+                        const itemsSummary = bill.items.map(item => `${item.name} (x${item.quantity})`).join(', ');
+                        row.innerHTML = `
+                            <td class="table-cell text-sm">${bill.id.substring(0, 6)}...</td>
+                            <td class="table-cell text-sm">${bill.billDate.toLocaleDateString()}</td>
+                            <td class="table-cell text-sm">${bill.customerName}</td>
+                            <td class="table-cell text-sm">${itemsSummary}</td>
+                            <td class="table-cell text-right font-semibold">₹${bill.grandTotal.toFixed(2)}</td>
+                        `;
+                        salesReportListEl.appendChild(row);
+                    });
+
+                } catch (e) {
+                    console.error("Error generating sales report: ", e);
+                    showMessageBox(`Error generating sales report: ${e.message}`, 'error');
+                    salesReportListEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">Error loading report.</td></tr>`;
+                }
+            }
+
+            // --- Inventory Report Functions ---
+            const lowStockListEl = document.getElementById('lowStockList');
+            const expiringSoonListEl = document.getElementById('expiringSoonList');
+            const allInventoryListEl = document.getElementById('allInventoryList');
+
+            function generateInventoryReport() {
+                if (!currentUserId) {
+                    lowStockListEl.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Please log in to view inventory reports.</td></tr>`;
+                    expiringSoonListEl.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Please log in to view inventory reports.</td></tr>`;
+                    allInventoryListEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Please log in to view inventory reports.</td></tr>`;
+                    return;
+                }
+
+                lowStockListEl.innerHTML = '';
+                expiringSoonListEl.innerHTML = '';
+                allInventoryListEl.innerHTML = '';
+
+                const lowStockThreshold = 10; // Medicines with quantity less than this are considered low stock
+                const expiryWarningDays = 90; // Medicines expiring within this many days are flagged
+
+                const now = new Date();
+                const expiringSoonDate = new Date();
+                expiringSoonDate.setDate(now.getDate() + expiryWarningDays);
+
+                let hasLowStock = false;
+                let hasExpiringSoon = false;
+                let hasAllInventory = false;
+
+                allMedicines.forEach(medicine => {
+                    // All Current Stock
+                    const allInvRow = document.createElement('tr');
+                    allInvRow.classList.add('table-row');
+                    allInvRow.innerHTML = `
+                        <td class="table-cell">${medicine.name}</td>
+                        <td class="table-cell">${medicine.batchNo}</td>
+                        <td class="table-cell">${medicine.expiryDate}</td>
+                        <td class="table-cell">${medicine.quantity}</td>
+                        <td class="table-cell">₹${medicine.price.toFixed(2)}</td>
+                    `;
+                    allInventoryListEl.appendChild(allInvRow);
+                    hasAllInventory = true;
+
+                    // Low Stock
+                    if (medicine.quantity < lowStockThreshold) {
+                        const lowStockRow = document.createElement('tr');
+                        lowStockRow.classList.add('table-row', 'bg-red-50'); /* Highlight low stock */
+                        lowStockRow.innerHTML = `
+                            <td class="table-cell">${medicine.name}</td>
+                            <td class="table-cell">${medicine.batchNo}</td>
+                            <td class="table-cell text-red-600 font-semibold">${medicine.quantity}</td>
+                            <td class="table-cell">₹${medicine.price.toFixed(2)}</td>
+                        `;
+                        lowStockListEl.appendChild(lowStockRow);
+                        hasLowStock = true;
+                    }
+
+                    // Expiring Soon
+                    const expiry = new Date(medicine.expiryDate);
+                    if (expiry > now && expiry <= expiringSoonDate) {
+                        const expiringRow = document.createElement('tr');
+                        expiringRow.classList.add('table-row', 'bg-yellow-50'); /* Highlight expiring */
+                        expiringRow.innerHTML = `
+                            <td class="table-cell">${medicine.name}</td>
+                            <td class="table-cell">${medicine.batchNo}</td>
+                            <td class="table-cell text-orange-600 font-semibold">${medicine.expiryDate}</td>
+                            <td class="table-cell">${medicine.quantity}</td>
+                        `;
+                        expiringSoonListEl.appendChild(expiringRow);
+                        hasExpiringSoon = true;
+                    }
+                });
+
+                if (!hasLowStock) {
+                    lowStockListEl.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">No low stock medicines found.</td></tr>`;
+                }
+                if (!hasExpiringSoon) {
+                    expiringSoonListEl.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">No medicines expiring soon.</td></tr>`;
+                }
+                if (!hasAllInventory) {
+                    allInventoryListEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No medicines in inventory.</td></tr>`;
+                }
             }
 
             // Initial render of cart (empty)
