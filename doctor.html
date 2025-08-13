@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Booking and Pharmacy Portal</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN for SVG icons -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest"></script>
+    <!-- jsPDF and html2canvas for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .page { display: none; } /* Hide all pages by default */
+        .page.active { display: block; } /* Show the active page */
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100 font-sans flex flex-col justify-center items-center p-4">
+
+    <!-- Main Container -->
+    <div id="app-container" class="w-full max-w-6xl">
+
+        <!-- Home Page -->
+        <div id="home-page" class="page active">
+            <div class="flex flex-col items-center justify-center p-6 text-center h-full">
+                <div class="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full">
+                    <h1 class="text-4xl font-extrabold text-gray-800 mb-4">
+                        <span class="text-blue-600">Health</span> Hub
+                    </h1>
+                    <p class="text-lg text-gray-600 mb-8">
+                        Your one-stop portal for doctor appointments and pharmacy needs.
+                    </p>
+                    <div class="flex flex-col md:flex-row gap-4 justify-center">
+                        <button id="book-appointment-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 hover:scale-105 flex items-center justify-center">
+                            <span class="mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><line x1="10" y1="9" x2="10" y2="9"></line></svg></span> Book an Appointment
+                        </button>
+                        <button id="pharmacy-portal-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 hover:scale-105 flex items-center justify-center">
+                            <span class="mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.2.3 2.3.8 3.3L12 22l4.2-11.7c.5-1 1-2.1.8-3.3a5 5 0 0 0-5-5z"></path></svg></span> Pharmacy Portal
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Page -->
+        <div id="booking-page" class="page p-6 md:p-12 h-full">
+            <div class="bg-white p-8 rounded-lg shadow-xl">
+                <button id="back-to-home-from-booking" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full shadow-md mb-6 flex items-center">
+                    <span class="mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></span> Back to Home
+                </button>
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                    <span class="mr-3 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"></path><path d="M10 12v4"></path><path d="M14 12v4"></path><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="M4.9 4.9l1.4 1.4"></path><path d="M17.7 17.7l1.4 1.4"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="M4.9 19.1l1.4-1.4"></path><path d="M17.7 6.3l1.4-1.4"></path></svg></span> Choose a Doctor
+                </h2>
+                <!-- Doctor selection -->
+                <div id="doctor-list" class="grid md:grid-cols-3 gap-6 mb-8">
+                    <!-- Doctors will be injected here -->
+                </div>
+
+                <div id="date-time-section" class="hidden">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                        <span class="mr-3 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7v4"></path><path d="M8 15h8"></path><path d="M8 11h8"></path><path d="M8 19h8"></path><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect></svg></span> Select Date & Time
+                    </h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- Date Picker -->
+                        <div class="p-6 bg-gray-50 rounded-lg shadow-inner">
+                            <div class="flex justify-between items-center mb-4">
+                                <button id="prev-date-btn" class="p-2 rounded-full hover:bg-gray-200"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button>
+                                <span id="current-date" class="text-lg font-semibold"></span>
+                                <button id="next-date-btn" class="p-2 rounded-full hover:bg-gray-200"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
+                            </div>
+                            <p class="text-gray-500 text-center text-sm">Use the arrows to change the date.</p>
+                        </div>
+                        <!-- Time Slot Picker -->
+                        <div class="p-6 bg-gray-50 rounded-lg shadow-inner">
+                            <h3 class="font-semibold text-lg mb-4">Available Slots</h3>
+                            <div id="time-slots" class="grid grid-cols-2 gap-4">
+                                <!-- Time slots will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Booking button -->
+                    <div class="flex justify-center mt-8">
+                        <button id="book-now-btn" disabled class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-10 rounded-full shadow-lg transform transition duration-300 hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center">
+                            <span id="booking-spinner" class="hidden mr-2 animate-spin"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"></path><path d="M12 18v4"></path><path d="M4.93 4.93l2.12 2.12"></path><path d="M16.95 16.95l2.12 2.12"></path><path d="M2 12h4"></path><path d="M18 12h4"></path><path d="M4.93 19.07l2.12-2.12"></path><path d="M16.95 7.05l2.12-2.12"></path></svg></span>
+                            Book Appointment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Page -->
+        <div id="confirmation-page" class="page p-6 md:p-12 h-full flex flex-col items-center justify-center">
+            <div class="bg-white p-8 rounded-lg shadow-xl text-center max-w-md w-full">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Appointment Confirmed!</h2>
+                <div class="text-left bg-gray-50 p-6 rounded-lg mb-6">
+                    <p class="flex items-center mb-2"><span class="mr-2 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span> <span class="font-semibold">Doctor:</span> <span id="conf-doctor"></span></p>
+                    <p class="flex items-center mb-2"><span class="mr-2 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"></path><path d="M10 12v4"></path><path d="M14 12v4"></path><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="M4.9 4.9l1.4 1.4"></path><path d="M17.7 17.7l1.4 1.4"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="M4.9 19.1l1.4-1.4"></path><path d="M17.7 6.3l1.4-1.4"></path></svg></span> <span class="font-semibold">Specialization:</span> <span id="conf-specialization"></span></p>
+                    <p class="flex items-center mb-2"><span class="mr-2 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span> <span class="font-semibold">Date:</span> <span id="conf-date"></span></p>
+                    <p class="flex items-center"><span class="mr-2 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span> <span class="font-semibold">Time:</span> <span id="conf-time"></span></p>
+                </div>
+                <button id="generate-ticket-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 hover:scale-105 flex items-center justify-center w-full">
+                    <span id="ticket-spinner" class="hidden mr-2 animate-spin"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"></path><path d="M12 18v4"></path><path d="M4.93 4.93l2.12 2.12"></path><path d="M16.95 16.95l2.12 2.12"></path><path d="M2 12h4"></path><path d="M18 12h4"></path><path d="M4.93 19.07l2.12-2.12"></path><path d="M16.95 7.05l2.12-2.12"></path></svg></span>
+                    Generate My Ticket
+                </button>
+            </div>
+        </div>
+
+        <!-- Tickets Page -->
+        <div id="tickets-page" class="page p-6 md:p-12 h-full">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                <span class="mr-3 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 18l-6-6 6-6"></path></svg></span> Your Tickets
+            </h2>
+            <button id="back-to-home-from-tickets" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full shadow-md mb-6">
+                Book Another Appointment
+            </button>
+            <div id="tickets-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Tickets will be injected here -->
+            </div>
+        </div>
+
+        <!-- Pharmacy Portal Page -->
+        <div id="pharmacy-page" class="page p-6 md:p-12 h-full">
+            <div class="bg-white p-8 rounded-lg shadow-xl">
+                <button id="back-to-home-from-pharmacy" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full shadow-md mb-6 flex items-center">
+                    <span class="mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></span> Back to Home
+                </button>
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                    <span class="mr-3 text-purple-500"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.2.3 2.3.8 3.3L12 22l4.2-11.7c.5-1 1-2.1.8-3.3a5 5 0 0 0-5-5z"></path></svg></span> Pharmacy Portal
+                </h2>
+                <p class="text-gray-600 mb-8">
+                    Browse our selection of available medications.
+                </p>
+                <!-- Medication List -->
+                <div id="medication-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Medications will be injected here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript logic -->
+    <script>
+        // Use a simple state object to manage the application's data
+        const appState = {
+            currentPage: 'home-page',
+            loading: false,
+            selectedDoctor: null,
+            selectedDate: new Date(),
+            selectedTime: null,
+            tickets: [],
+            serialCounter: 1,
+        };
+
+        // --- Mock Data ---
+        const doctors = [
+            { id: 1, name: 'Dr. Jane Doe', specialization: 'Cardiologist', image: 'https://placehold.co/100x100/AEC6CF/000?text=JD' },
+            { id: 2, name: 'Dr. John Smith', specialization: 'Pediatrician', image: 'https://placehold.co/100x100/AEC6CF/000?text=JS' },
+            { id: 3, name: 'Dr. Emily White', specialization: 'Dermatologist', image: 'https://placehold.co/100x100/AEC6CF/000?text=EW' },
+        ];
+
+        const medications = [
+            { id: 1, name: 'Aspirin', description: 'Pain reliever and fever reducer.', price: 5.99 },
+            { id: 2, name: 'Amoxicillin', description: 'Antibiotic to treat bacterial infections.', price: 12.50 },
+            { id: 3, name: 'Cetirizine', description: 'Antihistamine for allergy relief.', price: 8.75 },
+            { id: 4, name: 'Ibuprofen', description: 'NSAID for pain, inflammation, and fever.', price: 6.25 },
+            { id: 5, name: 'Loratadine', description: 'Non-drowsy allergy relief.', price: 9.10 },
+        ];
+
+        const getAvailableTimes = (date) => {
+            // In a real app, this would be an API call
+            return ['09:00 AM', '10:30 AM', '02:00 PM', '03:30 PM'];
+        };
+
+        // --- DOM Elements ---
+        const pages = document.querySelectorAll('.page');
+        const homePage = document.getElementById('home-page');
+        const bookingPage = document.getElementById('booking-page');
+        const confirmationPage = document.getElementById('confirmation-page');
+        const ticketsPage = document.getElementById('tickets-page');
+        const pharmacyPage = document.getElementById('pharmacy-page');
+
+        const bookAppointmentBtn = document.getElementById('book-appointment-btn');
+        const pharmacyPortalBtn = document.getElementById('pharmacy-portal-btn');
+        const backToHomeFromBookingBtn = document.getElementById('back-to-home-from-booking');
+        const backToHomeFromTicketsBtn = document.getElementById('back-to-home-from-tickets');
+        const backToHomeFromPharmacyBtn = document.getElementById('back-to-home-from-pharmacy');
+
+        const doctorList = document.getElementById('doctor-list');
+        const dateTimeSection = document.getElementById('date-time-section');
+        const prevDateBtn = document.getElementById('prev-date-btn');
+        const nextDateBtn = document.getElementById('next-date-btn');
+        const currentDateSpan = document.getElementById('current-date');
+        const timeSlotsDiv = document.getElementById('time-slots');
+        const bookNowBtn = document.getElementById('book-now-btn');
+        const bookingSpinner = document.getElementById('booking-spinner');
+
+        const confDoctorSpan = document.getElementById('conf-doctor');
+        const confSpecializationSpan = document.getElementById('conf-specialization');
+        const confDateSpan = document.getElementById('conf-date');
+        const confTimeSpan = document.getElementById('conf-time');
+        const generateTicketBtn = document.getElementById('generate-ticket-btn');
+        const ticketSpinner = document.getElementById('ticket-spinner');
+
+        const ticketsListDiv = document.getElementById('tickets-list');
+        const medicationListDiv = document.getElementById('medication-list');
+
+        // --- Functions ---
+
+        // Function to switch between pages
+        const showPage = (pageId) => {
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        };
+
+        // Renders the list of doctors on the booking page
+        const renderDoctors = () => {
+            doctorList.innerHTML = doctors.map(doctor => `
+                <div id="doctor-${doctor.id}" class="p-6 bg-gray-50 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-lg border-gray-200" data-id="${doctor.id}">
+                    <div class="flex items-center">
+                        <img src="${doctor.image}" alt="${doctor.name}" class="w-16 h-16 rounded-full mr-4 border-2 border-gray-200" />
+                        <div>
+                            <h3 class="font-semibold text-lg">${doctor.name}</h3>
+                            <p class="text-sm text-gray-500">${doctor.specialization}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        // Renders the available time slots
+        const renderTimeSlots = () => {
+            timeSlotsDiv.innerHTML = getAvailableTimes(appState.selectedDate).map(time => `
+                <button class="time-slot-btn py-3 px-4 rounded-lg font-medium transition-all duration-200 bg-white text-gray-800 hover:bg-blue-100" data-time="${time}">
+                    ${time}
+                </button>
+            `).join('');
+        };
+
+        // Renders the pharmacy portal content
+        const renderMedications = () => {
+            medicationListDiv.innerHTML = medications.map(med => `
+                <div class="bg-gray-50 p-6 rounded-lg shadow-md">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-4">
+                            <span class="text-purple-500"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5c0 1.2.3 2.3.8 3.3L12 22l4.2-11.7c.5-1 1-2.1.8-3.3a5 5 0 0 0-5-5z"></path></svg></span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-xl text-gray-800">${med.name}</h3>
+                            <p class="text-sm text-gray-600 mt-2">${med.description}</p>
+                            <div class="mt-4 flex items-center justify-between">
+                                <span class="text-lg font-semibold text-purple-600">$${med.price.toFixed(2)}</span>
+                                <button class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full shadow-lg text-sm transition-all duration-200 flex items-center" onclick="alert('This would add the item to a cart!')">
+                                    <span class="mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.92a2 2 0 0 0 1.92 1.58h9.8a2 2 0 0 0 1.92-1.58L23 6H6"></path></svg></span> Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+        
+        // Simulates an API call to get a ticket summary
+        const generateTicketSummary = async (doctorName, appointmentDate, appointmentTime) => {
+            // Placeholder for API call
+            return `Your appointment with ${doctorName} is confirmed for ${appointmentDate.toDateString()} at ${appointmentTime}. We look forward to seeing you.`;
+        };
+
+        const renderTickets = () => {
+            ticketsListDiv.innerHTML = appState.tickets.map(ticket => `
+                <div class="bg-white p-6 rounded-lg shadow-xl relative">
+                    <div id="ticket-${ticket.id}" class="ticket-content p-4 border-2 border-dashed border-gray-300 rounded-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-extrabold text-2xl text-gray-800">Appointment Ticket</h3>
+                            <span class="text-xs font-mono text-gray-500">
+                                Serial: <span class="font-bold text-gray-700">#${String(ticket.id).padStart(4, '0')}</span>
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">${ticket.summary}</p>
+                        <div class="border-t border-gray-200 pt-4">
+                            <p class="flex items-center mb-1"><span class="mr-2 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span> <span class="font-semibold">Doctor:</span> ${ticket.doctor.name}</p>
+                            <p class="flex items-center mb-1"><span class="mr-2 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span> <span class="font-semibold">Date:</span> ${ticket.date.toDateString()}</p>
+                            <p class="flex items-center"><span class="mr-2 text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span> <span class="font-semibold">Time:</span> ${ticket.time}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-4">
+                        <button class="download-pdf-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg flex items-center transition-all duration-200" data-ticket-id="${ticket.id}">
+                            <span class="mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span> Download PDF
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        // Updates the confirmation page details
+        const updateConfirmationDetails = () => {
+            confDoctorSpan.textContent = appState.selectedDoctor.name;
+            confSpecializationSpan.textContent = appState.selectedDoctor.specialization;
+            confDateSpan.textContent = appState.selectedDate.toDateString();
+            confTimeSpan.textContent = appState.selectedTime;
+        };
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial render
+            renderDoctors();
+            renderMedications();
+            updateCurrentDate();
+            lucide.createIcons(); // Initialize Lucide icons
+        });
+
+        bookAppointmentBtn.addEventListener('click', () => {
+            showPage('booking-page');
+        });
+
+        pharmacyPortalBtn.addEventListener('click', () => {
+            showPage('pharmacy-page');
+        });
+
+        backToHomeFromBookingBtn.addEventListener('click', () => {
+            showPage('home-page');
+        });
+
+        backToHomeFromTicketsBtn.addEventListener('click', () => {
+            showPage('home-page');
+        });
+        
+        backToHomeFromPharmacyBtn.addEventListener('click', () => {
+            showPage('home-page');
+        });
+
+        // Doctor selection logic
+        doctorList.addEventListener('click', (e) => {
+            const doctorDiv = e.target.closest('[data-id]');
+            if (!doctorDiv) return;
+
+            const doctorId = parseInt(doctorDiv.dataset.id);
+            appState.selectedDoctor = doctors.find(d => d.id === doctorId);
+
+            // Update UI to reflect selection
+            document.querySelectorAll('#doctor-list > div').forEach(div => {
+                div.classList.remove('border-blue-500', 'ring-2');
+            });
+            doctorDiv.classList.add('border-blue-500', 'ring-2');
+            dateTimeSection.classList.remove('hidden');
+
+            // Reset date and time for new doctor
+            appState.selectedDate = new Date();
+            appState.selectedTime = null;
+            updateCurrentDate();
+            renderTimeSlots();
+            bookNowBtn.disabled = true;
+        });
+
+        // Date navigation logic
+        const updateCurrentDate = () => {
+            currentDateSpan.textContent = appState.selectedDate.toDateString();
+            renderTimeSlots();
+        };
+
+        prevDateBtn.addEventListener('click', () => {
+            const newDate = new Date(appState.selectedDate);
+            newDate.setDate(newDate.getDate() - 1);
+            appState.selectedDate = newDate;
+            updateCurrentDate();
+        });
+
+        nextDateBtn.addEventListener('click', () => {
+            const newDate = new Date(appState.selectedDate);
+            newDate.setDate(newDate.getDate() + 1);
+            appState.selectedDate = newDate;
+            updateCurrentDate();
+        });
+
+        // Time slot selection logic
+        timeSlotsDiv.addEventListener('click', (e) => {
+            const timeSlotBtn = e.target.closest('.time-slot-btn');
+            if (!timeSlotBtn) return;
+
+            appState.selectedTime = timeSlotBtn.dataset.time;
+
+            // Update UI to reflect selection
+            document.querySelectorAll('.time-slot-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+                btn.classList.add('bg-white', 'text-gray-800');
+            });
+            timeSlotBtn.classList.remove('bg-white', 'text-gray-800');
+            timeSlotBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+            bookNowBtn.disabled = false;
+        });
+
+        // Booking button logic
+        bookNowBtn.addEventListener('click', () => {
+            if (appState.selectedDoctor && appState.selectedDate && appState.selectedTime) {
+                bookNowBtn.disabled = true;
+                bookingSpinner.classList.remove('hidden');
+                setTimeout(() => {
+                    updateConfirmationDetails();
+                    showPage('confirmation-page');
+                    bookingSpinner.classList.add('hidden');
+                    bookNowBtn.disabled = false;
+                }, 1000);
+            }
+        });
+
+        // Generate ticket button logic
+        generateTicketBtn.addEventListener('click', async () => {
+            generateTicketBtn.disabled = true;
+            ticketSpinner.classList.remove('hidden');
+
+            const summary = await generateTicketSummary(
+                appState.selectedDoctor.name,
+                appState.selectedDate,
+                appState.selectedTime
+            );
+
+            const newTicket = {
+                id: appState.serialCounter,
+                doctor: appState.selectedDoctor,
+                date: appState.selectedDate,
+                time: appState.selectedTime,
+                summary: summary,
+            };
+
+            appState.tickets.push(newTicket);
+            appState.serialCounter++;
+            renderTickets();
+            showPage('tickets-page');
+
+            ticketSpinner.classList.add('hidden');
+            generateTicketBtn.disabled = false;
+        });
+
+        // PDF download logic (using event delegation for dynamically added buttons)
+        ticketsListDiv.addEventListener('click', async (e) => {
+            const downloadBtn = e.target.closest('.download-pdf-btn');
+            if (!downloadBtn) return;
+
+            const ticketId = parseInt(downloadBtn.dataset.ticketId);
+            const ticketElement = document.getElementById(`ticket-${ticketId}`);
+
+            if (!ticketElement) {
+                console.error(`Ticket element with id ticket-${ticketId} not found.`);
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const canvas = await html2canvas(ticketElement, { scale: 2, logging: false });
+            const imgData = canvas.toDataURL('image/png');
+
+            const imgWidth = 595.28; // A4 size width
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+            doc.save(`ticket-${ticketId}.pdf`);
+        });
+
+    </script>
+</body>
+</html>
