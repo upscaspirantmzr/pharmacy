@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MZR Pharmacy Portal — Advanced</title>
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- jsPDF & html2canvas for invoice PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f3f6fb; color:#1f2937 }
+        .card { background: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 8px 20px rgba(15,23,42,0.06)}
+        .input-field { padding: 0.6rem 0.9rem; border-radius: 8px; border:1px solid #e6edf3; width:100% }
+        .btn { padding: 0.6rem 1rem; border-radius:10px; font-weight:600 }
+        .table-cell{ padding:0.85rem }
+        /* responsive invoice hidden for printing */
+        @media print{ .no-print{ display:none } }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Top message -->
+    <div id="toast" class="fixed right-4 top-6 z-50 hidden"></div>
+
+    <!-- AUTH SECTION -->
+    <main class="max-w-6xl mx-auto p-6">
+        <div id="auth" class="card max-w-md mx-auto mt-12">
+            <div class="text-center mb-4">
+                <i class="fas fa-prescription-bottle-alt text-indigo-600 text-4xl"></i>
+                <h1 class="text-2xl font-bold mt-2">MZR Pharmacy — Admin Login</h1>
+                <p class="text-sm text-gray-600">Secure admin login (Firebase Auth)</p>
+            </div>
+            <div class="mb-3"><input id="loginEmail" class="input-field" placeholder="admin@example.com" type="email"></div>
+            <div class="mb-4"><input id="loginPassword" class="input-field" placeholder="password" type="password"></div>
+            <div class="flex gap-3">
+                <button id="loginBtn" class="btn bg-indigo-600 text-white w-full"><i class="fas fa-sign-in-alt mr-2"></i>Login</button>
+                <button id="guestBtn" class="btn border w-32">Guest</button>
+            </div>
+            <p class="mt-3 text-xs text-gray-500">This is a single-file advanced demo. Make sure your Firebase config (in script) is correct.</p>
+        </div>
+
+        <!-- MAIN APP (hidden until login) -->
+        <div id="app" class="hidden">
+            <header class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-4">
+                    <i class="fas fa-prescription-bottle-alt text-indigo-600 text-3xl"></i>
+                    <div>
+                        <h2 class="text-xl font-bold">MZR Pharmacy — Portal</h2>
+                        <p class="text-sm text-gray-600">Advanced billing & inventory</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="exportInventoryCSV" class="btn border px-3 no-print">Export CSV</button>
+                    <button id="backupBtn" class="btn border px-3 no-print">Backup JSON</button>
+                    <button id="restoreBtn" class="btn border px-3 no-print">Restore</button>
+                    <div id="userInfo" class="text-sm text-gray-600">UID: —</div>
+                    <button id="logoutBtn" class="btn bg-red-500 text-white no-print"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </header>
+
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="card">
+                    <h3 class="font-bold mb-3">Add / Update Medicine</h3>
+                    <div class="grid gap-2">
+                        <input id="mName" class="input-field" placeholder="Medicine name">
+                        <input id="mBatch" class="input-field" placeholder="Batch No">
+                        <input id="mExpiry" class="input-field" type="date">
+                        <input id="mQty" class="input-field" type="number" min="0" placeholder="Quantity">
+                        <input id="mPrice" class="input-field" type="number" step="0.01" placeholder="Price per unit">
+                        <div class="flex gap-2">
+                            <button id="addMedBtn" class="btn bg-green-600 text-white w-full">Add</button>
+                            <button id="updateMedBtn" class="btn bg-yellow-500 text-white w-full">Update</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card lg:col-span-2">
+                    <h3 class="font-bold mb-3">Billing (POS)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                        <input id="custName" class="input-field" placeholder="Customer name">
+                        <input id="searchBill" class="input-field" placeholder="Search medicine by name or batch">
+                        <select id="discountType" class="input-field">
+                            <option value="none">No Discount</option>
+                            <option value="percentage">Discount %</option>
+                            <option value="flat">Flat Discount</option>
+                        </select>
+                    </div>
+                    <div id="searchResults" class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3"></div>
+
+                    <div class="overflow-x-auto mb-3">
+                        <table class="min-w-full bg-white">
+                            <thead><tr class="bg-indigo-50"><th class="table-cell">Item</th><th class="table-cell">Price</th><th class="table-cell">Qty</th><th class="table-cell">Total</th><th class="table-cell">Action</th></tr></thead>
+                            <tbody id="cartBody"><tr><td colspan="5" class="text-center py-4 text-gray-500">Cart empty</td></tr></tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <div class="space-y-2">
+                            <div>GST<input id="gstPercent" class="input-field inline-block w-28 ml-2" type="number" value="12"></div>
+                            <div>Round Off <input id="roundToggle" type="checkbox" checked></div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm">Subtotal: <span id="subTotal">₹0.00</span></div>
+                            <div class="text-sm">Discount: <span id="discountVal">₹0.00</span></div>
+                            <div class="text-sm">GST: <span id="gstVal">₹0.00</span></div>
+                            <div class="text-2xl font-bold">Grand Total: <span id="grandTotal">₹0.00</span></div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 mt-3 no-print">
+                        <button id="saveBillBtn" class="btn bg-indigo-600 text-white">Save Bill</button>
+                        <button id="printPdfBtn" class="btn bg-green-600 text-white">Download PDF</button>
+                        <button id="undoBtn" class="btn border">Undo Last Bill</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="card">
+                    <h3 class="font-bold mb-3">Inventory</h3>
+                    <div class="mb-2 flex gap-2">
+                        <input id="invSearch" class="input-field" placeholder="Search inventory">
+                        <button id="exportInvBtn" class="btn border">Export CSV</button>
+                    </div>
+                    <div class="overflow-x-auto max-h-64 overflow-y-auto">
+                        <table class="min-w-full bg-white">
+                            <thead><tr class="bg-indigo-50"><th class="table-cell">Name</th><th class="table-cell">Batch</th><th class="table-cell">Expiry</th><th class="table-cell">Qty</th><th class="table-cell">Price</th></tr></thead>
+                            <tbody id="invTable"><tr><td colspan="5" class="text-center py-4 text-gray-500">No data</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="font-bold mb-3">Reports & Settings</h3>
+                    <div class="mb-3">
+                        <label class="text-sm">Low stock threshold</label>
+                        <input id="lowStockThreshold" class="input-field w-28" type="number" value="10">
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-sm">Expiry warning days</label>
+                        <input id="expiryDays" class="input-field w-28" type="number" value="90">
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="saveSettings" class="btn bg-indigo-600 text-white">Save Settings</button>
+                        <button id="exportSalesCsv" class="btn border">Export Sales CSV</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Invoice preview hidden area used to create PDF -->
+            <div id="invoiceTemplate" style="display:none; width:800px; padding:20px; background:#fff; border-radius:8px"></div>
+        </div>
+    </main>
+
+    <script type="module">
+    // =========================
+    // Advanced Pharmacy Portal
+    // Single-file HTML — extended features
+    // Features added:
+    // - Invoice PDF download (jsPDF + html2canvas)
+    // - CSV export for inventory & sales
+    // - Backup / Restore JSON for medicines & bills
+    // - Discount types, GST, round-off, undo last bill
+    // - Settings for low-stock & expiry warnings (stored in localStorage)
+    // - Guest mode (local-only) fallback
+    // =========================
+
+    // Simple toast
+    function toast(msg, type='success'){
+        const el = document.getElementById('toast');
+        el.innerHTML = `<div class=\"card p-3 rounded shadow-lg ${type==='error'? 'bg-red-500 text-white':'bg-green-500 text-white'}\">${msg}</div>`;
+        el.classList.remove('hidden');
+        setTimeout(()=> el.classList.add('hidden'), 3000);
+    }
+
+    // Local state (works in guest mode)
+    let medicines = [];
+    let bills = [];
+    let cart = [];
+    let currentUser = null;
+    let lastSavedBillId = null;
+
+    // Load settings
+    const settings = JSON.parse(localStorage.getItem('pharmacy_settings') || '{}');
+    const lowStockThresholdInput = document.getElementById('lowStockThreshold');
+    const expiryDaysInput = document.getElementById('expiryDays');
+    lowStockThresholdInput.value = settings.lowStock || 10;
+    expiryDaysInput.value = settings.expiryDays || 90;
+
+    // Utility: format INR
+    function fmt(n){ return '₹' + Number(n || 0).toFixed(2); }
+
+    // ====== Simple in-memory DB helpers (Guest mode) ======
+    function saveLocal(){ localStorage.setItem('pharmacy_medicines', JSON.stringify(medicines)); localStorage.setItem('pharmacy_bills', JSON.stringify(bills)); }
+    function loadLocal(){ medicines = JSON.parse(localStorage.getItem('pharmacy_medicines')||'[]'); bills = JSON.parse(localStorage.getItem('pharmacy_bills')||'[]'); renderInventory(); }
+    loadLocal();
+
+    // ====== Inventory render ======
+    function renderInventory(filter=''){
+        const tbody = document.getElementById('invTable'); tbody.innerHTML='';
+        const list = medicines.filter(m=> (m.name||'').toLowerCase().includes(filter.toLowerCase()) || (m.batchNo||'').toLowerCase().includes(filter.toLowerCase()));
+        if(!list.length){ tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No data</td></tr>'; return; }
+        list.forEach(m=>{
+            const tr = document.createElement('tr'); tr.className='table-row';
+            tr.innerHTML = `<td class="table-cell">${m.name}</td><td class="table-cell">${m.batchNo}</td><td class="table-cell">${m.expiryDate}</td><td class="table-cell">${m.quantity}</td><td class="table-cell">${fmt(m.price)}</td>`;
+            tbody.appendChild(tr);
+        })
+    }
+
+    document.getElementById('invSearch').addEventListener('input', e=> renderInventory(e.target.value));
+
+    // ====== Add / Update medicine ======
+    document.getElementById('addMedBtn').addEventListener('click', ()=>{
+        const name = document.getElementById('mName').value.trim();
+        const batch = document.getElementById('mBatch').value.trim();
+        const expiry = document.getElementById('mExpiry').value;
+        const qty = parseInt(document.getElementById('mQty').value||0);
+        const price = parseFloat(document.getElementById('mPrice').value||0);
+        if(!name||!batch||!expiry||isNaN(qty)||isNaN(price)){ toast('Fill all fields','error'); return; }
+        const id = 'm_'+Date.now();
+        medicines.push({ id,name,batchNo:batch, expiryDate:expiry, quantity:qty, price}); saveLocal(); renderInventory(); toast('Medicine added');
+        // clear
+        document.getElementById('mName').value=''; document.getElementById('mBatch').value=''; document.getElementById('mExpiry').value=''; document.getElementById('mQty').value=''; document.getElementById('mPrice').value='';
+    });
+
+    document.getElementById('updateMedBtn').addEventListener('click', ()=>{
+        const name = document.getElementById('mName').value.trim();
+        const batch = document.getElementById('mBatch').value.trim();
+        const expiry = document.getElementById('mExpiry').value;
+        const qty = parseInt(document.getElementById('mQty').value||0);
+        const price = parseFloat(document.getElementById('mPrice').value||0);
+        const existing = medicines.find(m=> m.batchNo===batch && m.name===name);
+        if(!existing){ toast('No matching medicine to update. Use Add to create new','error'); return; }
+        existing.expiryDate = expiry; existing.quantity = qty; existing.price = price; saveLocal(); renderInventory(); toast('Medicine updated');
+    });
+
+    // ====== Billing search & add to cart ======
+    function renderSearchResults(){
+        const q = document.getElementById('searchBill').value.trim().toLowerCase();
+        const container = document.getElementById('searchResults'); container.innerHTML='';
+        const list = medicines.filter(m=> m.name.toLowerCase().includes(q) || m.batchNo.toLowerCase().includes(q));
+        if(!list.length){ container.innerHTML = '<div class="text-gray-500">No matches</div>'; return; }
+        list.forEach(m=>{
+            const card = document.createElement('div'); card.className='card';
+            card.innerHTML = `<div class="font-semibold text-indigo-700">${m.name} <small class="text-sm">(${m.batchNo})</small></div><div class="text-sm">Expiry: ${m.expiryDate} | Avl: ${m.quantity}</div><div class="mt-2"><button class=\"btn bg-indigo-600 text-white\" onclick=\"addToCart('${m.id}')\">Add</button></div>`;
+            container.appendChild(card);
+        })
+    }
+    document.getElementById('searchBill').addEventListener('input', renderSearchResults);
+
+    window.addToCart = function(mId){
+        const med = medicines.find(x=> x.id===mId); if(!med){ toast('Medicine not found','error'); return; }
+        const existing = cart.find(c=> c.id===mId);
+        if(existing){ if(existing.qty < med.quantity){ existing.qty++; } else { toast('Max stock reached','error'); } } else { cart.push({ id:med.id, name:med.name, batchNo:med.batchNo, price:med.price, qty:1}); }
+        renderCart(); toast('Added to cart');
+    }
+
+    function renderCart(){
+        const tbody = document.getElementById('cartBody'); tbody.innerHTML=''; if(!cart.length){ tbody.innerHTML='<tr><td colspan="5" class="text-center py-4 text-gray-500">Cart empty</td></tr>'; updateTotals(); return; }
+        let sub=0;
+        cart.forEach(item=>{ const total = item.qty*item.price; sub+=total; const tr=document.createElement('tr'); tr.innerHTML = `<td class="table-cell">${item.name}</td><td class="table-cell">${fmt(item.price)}</td><td class="table-cell"><input type=number min=1 value=${item.qty} onchange="changeQty('${item.id}',this.value)" class="input-field w-20"></td><td class="table-cell">${fmt(total)}</td><td class="table-cell"><button class='btn border' onclick="removeFromCart('${item.id}')">Remove</button></td>`; tbody.appendChild(tr); })
+        updateTotals();
+    }
+
+    window.changeQty = function(id,val){ const v=parseInt(val)||1; const it=cart.find(c=>c.id===id); const med = medicines.find(m=>m.id===id); if(v>med.quantity){ toast('Not enough stock','error'); it.qty = med.quantity; } else it.qty = v; renderCart(); }
+    window.removeFromCart = function(id){ cart = cart.filter(c=>c.id!==id); renderCart(); }
+
+    function updateTotals(){
+        const sub = cart.reduce((s,i)=> s + (i.qty*i.price),0);
+        document.getElementById('subTotal').textContent = fmt(sub);
+        // discount
+        const dtype = document.getElementById('discountType').value; let discount=0;
+        if(dtype==='percentage') discount = sub * 0.05; // sample 5% - or can prompt amount
+        if(dtype==='flat') discount = 10; // sample flat
+        document.getElementById('discountVal').textContent = fmt(discount);
+        // gst
+        const gstP = parseFloat(document.getElementById('gstPercent').value || 0);
+        const gstVal = (sub - discount) * gstP / 100;
+        document.getElementById('gstVal').textContent = fmt(gstVal);
+        let grand = sub - discount + gstVal;
+        if(document.getElementById('roundToggle').checked) grand = Math.round(grand);
+        document.getElementById('grandTotal').textContent = fmt(grand);
+    }
+
+    document.getElementById('discountType').addEventListener('change', updateTotals);
+    document.getElementById('gstPercent').addEventListener('input', updateTotals);
+    document.getElementById('roundToggle').addEventListener('change', updateTotals);
+
+    // ====== Save Bill (local guest) ======
+    document.getElementById('saveBillBtn').addEventListener('click', ()=>{
+        if(!cart.length){ toast('Cart empty','error'); return; }
+        const cust = document.getElementById('custName').value.trim()||'Walk-in';
+        const bill = { id:'b_'+Date.now(), customerName:cust, items: cart.map(i=>({ medicineId:i.id, name:i.name, batch:i.batchNo, price:i.price, quantity:i.qty, total:i.qty*i.price })), grandTotal: parseFloat(document.getElementById('grandTotal').textContent.replace('₹','')), billDate: new Date().toISOString() };
+        // reduce stock
+        bill.items.forEach(it=>{ const med = medicines.find(m=>m.id===it.medicineId); if(med) med.quantity -= it.quantity; });
+        bills.push(bill); lastSavedBillId = bill.id; saveLocal(); renderInventory(); cart=[]; renderCart(); toast('Bill saved and stock updated');
+    });
+
+    // ====== PDF Invoice (jsPDF + html2canvas) ======
+    document.getElementById('printPdfBtn').addEventListener('click', async ()=>{
+        if(!cart.length){ toast('Cart empty','error'); return; }
+        // create a simple HTML invoice in hidden container
+        const inv = document.getElementById('invoiceTemplate'); inv.style.display='block'; inv.innerHTML = `
+            <div style=\"font-family:Inter; width:100%; padding:20px;\">
+                <h1 style=\"color:#4f46e5\">MZR Pharmacy</h1>
+                <div>Customer: ${document.getElementById('custName').value||'Walk-in'}</div>
+                <div>Date: ${new Date().toLocaleString()}</div>
+                <table style=\"width:100%; border-collapse:collapse; margin-top:10px;\"><thead><tr><th style=\"text-align:left;\">Item</th><th>Qty</th><th style=\"text-align:right;\">Price</th><th style=\"text-align:right;\">Total</th></tr></thead><tbody>${cart.map(i=>`<tr><td>${i.name}</td><td>${i.qty}</td><td style=\"text-align:right;\">${i.price.toFixed(2)}</td><td style=\"text-align:right;\">${(i.qty*i.price).toFixed(2)}</td></tr>`).join('')}</tbody></table>
+                <h3 style=\"text-align:right\">Grand: ${document.getElementById('grandTotal').textContent}</h3>
+                <p style=\"text-align:center; margin-top:20px; color:#6b7280\">Thank you!</p>
+            </div>`;
+        // use html2canvas + jsPDF
+        const canvas = await html2canvas(inv, { scale:2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, 'PNG', 20, 20, pdfWidth-40, pdfHeight);
+        pdf.save('invoice.pdf');
+        inv.style.display='none';
+    });
+
+    // ====== Export Inventory CSV ======
+    function downloadCSV(filename, rows){
+        const csv = rows.map(r=> r.map(cell=> '"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+    }
+    document.getElementById('exportInvBtn').addEventListener('click', ()=>{
+        const rows = [ ['Name','Batch','Expiry','Qty','Price'] ].concat(medicines.map(m=> [m.name,m.batchNo,m.expiryDate,m.quantity,m.price]));
+        downloadCSV('inventory.csv', rows); toast('Inventory CSV exported');
+    });
+
+    document.getElementById('exportSalesCsv').addEventListener('click', ()=>{
+        const rows = [ ['BillID','Date','Customer','Total','Items'] ].concat(bills.map(b=> [b.id,b.billDate,b.customerName,b.grandTotal, b.items.map(i=> i.name+'(x'+i.quantity+')').join('; ') ]));
+        downloadCSV('sales.csv', rows); toast('Sales CSV exported');
+    });
+
+    // ====== Backup / Restore JSON ======
+    document.getElementById('backupBtn').addEventListener('click', ()=>{
+        const data = { medicines, bills, settings: { lowStock: lowStockThresholdInput.value, expiryDays: expiryDaysInput.value } };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'pharmacy-backup.json'; a.click(); URL.revokeObjectURL(url);
+        toast('Backup downloaded');
+    });
+    document.getElementById('restoreBtn').addEventListener('click', ()=>{
+        const input = document.createElement('input'); input.type='file'; input.accept='.json'; input.onchange = e=>{
+            const file = e.target.files[0]; const reader = new FileReader(); reader.onload = ev=>{ try{ const data = JSON.parse(ev.target.result); medicines = data.medicines||[]; bills = data.bills||[]; saveLocal(); renderInventory(); toast('Restore successful'); }catch(err){ toast('Invalid JSON','error') } }; reader.readAsText(file);
+        }; input.click();
+    });
+
+    // ====== Undo last bill ======
+    document.getElementById('undoBtn').addEventListener('click', ()=>{
+        if(!lastSavedBillId){ toast('No bill to undo','error'); return; }
+        const idx = bills.findIndex(b=> b.id===lastSavedBillId); if(idx===-1){ toast('Last bill not found','error'); return; }
+        const bill = bills[idx]; // revert stock
+        bill.items.forEach(it=>{ const med = medicines.find(m=> m.id===it.medicineId); if(med) med.quantity += it.quantity; });
+        bills.splice(idx,1); lastSavedBillId = null; saveLocal(); renderInventory(); toast('Last bill undone');
+    });
+
+    // ====== Settings save ======
+    document.getElementById('saveSettings').addEventListener('click', ()=>{
+        const low = parseInt(lowStockThresholdInput.value)||10; const exp = parseInt(expiryDaysInput.value)||90; localStorage.setItem('pharmacy_settings', JSON.stringify({ lowStock:low, expiryDays:exp })); toast('Settings saved');
+    });
+
+    // ====== Guest mode ======
+    document.getElementById('guestBtn').addEventListener('click', ()=>{ currentUser = { uid:'guest' }; document.getElementById('auth').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); document.getElementById('userInfo').textContent = 'Guest Mode'; renderInventory(); renderCart(); toast('Guest mode — local data only'); });
+
+    // ====== Simple mock-login to avoid Firebase complexity in demo ======
+    document.getElementById('loginBtn').addEventListener('click', ()=>{
+        const e = document.getElementById('loginEmail').value.trim(); const p = document.getElementById('loginPassword').value.trim();
+        if(!e||!p){ toast('Enter credentials','error'); return; }
+        // In real deployment, replace this block with Firebase Auth signInWithEmailAndPassword and Firestore sync
+        currentUser = { uid: 'local_'+Date.now(), email: e };
+        document.getElementById('auth').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); document.getElementById('userInfo').textContent = currentUser.email + ' — (local)'; toast('Logged in (local demo)'); renderInventory();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{ currentUser = null; document.getElementById('auth').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); toast('Logged out'); });
+
+    // ====== initialize tiny sample data if empty ======
+    if(!medicines.length){ medicines = [ { id:'m_1', name:'Paracetamol 500mg', batchNo:'A100', expiryDate:'2026-05-01', quantity:100, price:12.5 }, { id:'m_2', name:'Amoxicillin 250mg', batchNo:'B200', expiryDate:'2025-12-01', quantity:40, price:25.0 } ]; saveLocal(); }
+    renderInventory();
+
+    </script>
+</body>
+</html>
