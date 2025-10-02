@@ -356,33 +356,28 @@
         // --- Firebase Configuration ---
         // IMPORTANT: Replace with your project's Firebase configuration.
         // You can find this in your Firebase project settings.
+        // DOUBLE CHECK that each value is correct, including the project ID and API key.
        const firebaseConfig = {
-  apiKey: "AIzaSyCGqZWzzjyanwjfL2AKMgouSNglkzSALes",
-  authDomain: "pharmacy-a03ad.firebaseapp.com",
-  projectId: "pharmacy-a03ad",
-  storageBucket: "pharmacy-a03ad.firebasestorage.app",
-  messagingSenderId: "418332089175",
-  appId: "1:418332089175:web:65595eb4a6863ad8b2fc12"
-};
+            apiKey: "AIzaSyCGqZWzzjyanwjfL2AKMgouSNglkzSALes",
+            authDomain: "pharmacy-a03ad.firebaseapp.com",
+            projectId: "pharmacy-a03ad",
+            storageBucket: "pharmacy-a03ad.appspot.com",
+            messagingSenderId: "418332089175",
+            appId: "1:418332089175:web:65595eb4a6863ad8b2fc12"
+        };
         
         // --- Tab Switching UI ---
         const tabs = document.querySelectorAll('.tab-btn');
         const contents = document.querySelectorAll('.tab-content');
         window.switchTab = (tabName) => {
             tabs.forEach(tab => {
-                const textContent = tab.textContent.trim().toLowerCase();
-                if (textContent === tabName) {
-                    tab.classList.add('tab-active');
-                } else {
-                    tab.classList.remove('tab-active');
-                }
+                // Simplified tab switching logic
+                const iconPath = tab.querySelector('svg path').getAttribute('d');
+                const isActive = tab.textContent.trim().toLowerCase().includes(tabName);
+                tab.classList.toggle('tab-active', isActive);
             });
             contents.forEach(content => {
-                if (content.id === tabName) {
-                    content.classList.remove('hidden');
-                } else {
-                    content.classList.add('hidden');
-                }
+                content.classList.toggle('hidden', content.id !== tabName);
             });
         }
         
@@ -413,29 +408,27 @@
                 this.updateDateTime();
                 setInterval(this.updateDateTime, 1000);
                 this.prepareNewBill();
+                this.handleConnectionStatus();
 
+                // Initialize Firebase
                 try {
                     const app = initializeApp(firebaseConfig);
                     this.state.db = getFirestore(app);
                     this.state.auth = getAuth(app);
-
+                    
+                    // Enable offline persistence
                     await enableIndexedDbPersistence(this.state.db);
-                    this.showAlert("Offline mode enabled. App will work without internet.");
+                    console.log("Firebase offline persistence enabled.");
+                    
+                    this.handleAuthentication();
+
                 } catch (err) {
-                    if (err.code == 'failed-precondition') {
-                        console.warn("Offline persistence failed: Multiple tabs open.");
-                        this.showAlert("Multiple tabs open. Offline mode might not work correctly.");
-                    } else if (err.code == 'unimplemented') {
-                        console.error("Offline persistence failed: Browser not supported.");
-                        this.showAlert("Your browser doesn't support offline mode.");
-                    } else {
-                        console.error("Firebase init error:", err);
-                        this.showAlert("Could not initialize database.");
+                    console.error("Critical Firebase initialization error:", err);
+                    this.showAlert("FATAL: Could not initialize the database. The app cannot function. Please check your Firebase configuration and network connection.");
+                    if (err.code === 'failed-precondition') {
+                         this.showAlert("Offline mode failed: Multiple tabs are open. Please close other tabs and reload.");
                     }
                 }
-
-                this.handleAuthentication();
-                this.handleConnectionStatus();
             },
 
             handleAuthentication() {
@@ -446,7 +439,11 @@
                     } else {
                         signInAnonymously(this.state.auth).catch(error => {
                             console.error("Anonymous sign-in failed:", error);
-                            this.showAlert("Could not connect to the service.");
+                            if (error.code === 'auth/configuration-not-found') {
+                                this.showAlert("Authentication Error: Anonymous sign-in is not enabled. Please go to your Firebase Console -> Authentication -> Sign-in method and enable the 'Anonymous' provider.");
+                            } else {
+                                this.showAlert("Could not connect to the authentication service. The app may not save data correctly.");
+                            }
                         });
                     }
                 });
@@ -454,27 +451,30 @@
 
             setupFirestoreListeners() {
                 if (this.state.productsUnsubscribe) this.state.productsUnsubscribe();
-                this.state.productsUnsubscribe = onSnapshot(collection(this.state.db, "products"), (snapshot) => {
-                    this.state.products = [];
-                    snapshot.forEach(doc => {
-                        this.state.products.push({ id: doc.id, ...doc.data() });
-                    });
+                const productsQuery = collection(this.state.db, "products");
+                this.state.productsUnsubscribe = onSnapshot(productsQuery, (snapshot) => {
+                    this.state.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     this.renderInventory();
                     this.initFuse();
+                }, (error) => {
+                    console.error("Error fetching products:", error);
+                    this.showAlert("Error: Could not fetch inventory data.");
                 });
 
                 if (this.state.salesUnsubscribe) this.state.salesUnsubscribe();
-                this.state.salesUnsubscribe = onSnapshot(collection(this.state.db, "sales"), (snapshot) => {
-                    this.state.sales = [];
-                     snapshot.forEach(doc => {
+                const salesQuery = collection(this.state.db, "sales");
+                this.state.salesUnsubscribe = onSnapshot(salesQuery, (snapshot) => {
+                    this.state.sales = snapshot.docs.map(doc => {
                         const saleData = doc.data();
-                        // Convert Firestore Timestamps to JS Dates
                         if (saleData.date && saleData.date.toDate) {
                             saleData.date = saleData.date.toDate();
                         }
-                        this.state.sales.push({ id: doc.id, ...saleData });
+                        return { id: doc.id, ...saleData };
                     });
                     this.renderReports();
+                }, (error) => {
+                    console.error("Error fetching sales reports:", error);
+                    this.showAlert("Error: Could not fetch sales reports.");
                 });
             },
 
@@ -580,9 +580,6 @@
                  document.getElementById('report-date-filter').value = '';
                  this.renderReports();
             },
-
-            // --- The rest of the App methods (renderCurrentBill, calculateTotals, handleProductFormSubmit, etc.) ---
-            // --- These methods will now use Firestore for data operations ---
             
             async handleProductFormSubmit(e) {
                 e.preventDefault();
@@ -677,10 +674,11 @@
                             gst: this.state.currentBill.gst,
                             total: this.state.currentBill.total
                         };
-                        transaction.set(doc(salesCollection), newSale);
+                        const saleDocRef = doc(salesCollection);
+                        transaction.set(saleDocRef, newSale);
                         
                         if (andPrint) {
-                            this.printBill({ ...newSale, id: `INV-${Date.now()}` }); // pass a temp id for printing
+                            this.printBill({ ...newSale, id: saleDocRef.id });
                         }
                     });
 
@@ -692,11 +690,6 @@
                 }
             },
 
-            // --- The rest of the billing and UI methods are largely the same ---
-            // (handleProductSearch, addProductToBill, updateBillItemQuantity, etc.)
-            // The only change is that their data source (this.state.products) is now reactive from Firestore.
-            
-            // --- Unchanged methods from previous version (or with minor tweaks) ---
             renderCurrentBill() {
                 const billItems = document.getElementById('invoice-items');
                 const emptyMsg = document.getElementById('empty-cart-message');
@@ -806,7 +799,15 @@
             saveAndPrintBill() { this.saveBill(true); },
             printBill(sale) {
                 const printArea = document.getElementById('print-area');
-                const printDate = new Date(sale.date).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
+                const saleDate = sale.date && sale.date.toDate ? sale.date.toDate() : new Date(sale.date);
+
+                if (isNaN(saleDate.getTime())) {
+                    console.error("Invalid date provided to printBill:", sale.date);
+                    this.showAlert("Could not print bill due to an invalid date format.");
+                    return;
+                }
+
+                const printDate = saleDate.toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
                 let itemsHtml = sale.items.map(item => `
                     <tr class="border-b border-slate-200">
                         <td class="py-2 px-1">${item.name}</td>
@@ -820,7 +821,7 @@
                     <!-- Header -->
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
                         <div>
-                            <h1 style="font-size: 2.25rem; font-weight: 700; color: #3b82f6; margin: 0;">PharmaSoft</h1>
+                            <h1 style="font-size: 2.25rem; font-weight: 700; color: #3b82f6; margin: 0;">Mazumder Pharmacy</h1>
                             <p style="margin: 0; color: #6b7280;">Your Trusted Pharmacy</p>
                         </div>
                         <h2 style="font-size: 1.5rem; font-weight: 600; color: #374151; margin: 0; text-align: right;">TAX INVOICE</h2>
@@ -828,9 +829,9 @@
                     <!-- Pharmacy & Customer Details -->
                     <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.875rem;">
                         <div>
-                            <p style="margin: 0;"><strong>From:</strong> PharmaSoft Pharmacy</p>
+                            <p style="margin: 0;"><strong>From:</strong> Mazumder Pharmacy</p>
                             <p style="margin: 0;">123 Health St, Wellness City</p>
-                            <p style="margin: 0;">Email: contact@pharmasoft.dev</p>
+                            <p style="margin: 0;">Email: contact@mazumderpharmacy.com</p>
                         </div>
                         <div style="text-align: right;">
                              <p style="margin: 0;"><strong>To:</strong> ${sale.customerName || 'Walk-in Customer'}</p>
@@ -939,47 +940,73 @@
             },
             // --- PWA Setup ---
             setupPWA() {
-                // 1. Create and link manifest
                 const manifest = {
-                    "name": "PharmaSoft PWA",
-                    "short_name": "PharmaSoft",
+                    "name": "Mazumder Pharmacy PWA",
+                    "short_name": "MazumderRx",
                     "start_url": ".",
                     "display": "standalone",
                     "background_color": "#f9fafb",
                     "theme_color": "#3b82f6",
                     "description": "Offline-first Pharmacy Billing Application",
                     "icons": [
-                        { "src": "https://placehold.co/192x192/3b82f6/ffffff?text=PS", "sizes": "192x192", "type": "image/png" },
-                        { "src": "https://placehold.co/512x512/3b82f6/ffffff?text=PS", "sizes": "512x512", "type": "image/png" }
+                        { "src": "https://placehold.co/192x192/3b82f6/ffffff?text=MP", "sizes": "192x192", "type": "image/png" },
+                        { "src": "https://placehold.co/512x512/3b82f6/ffffff?text=MP", "sizes": "512x512", "type": "image/png" }
                     ]
                 };
                 const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
                 const manifestURL = URL.createObjectURL(manifestBlob);
                 document.querySelector('#manifest-placeholder').setAttribute('href', manifestURL);
 
-                // 2. Register Service Worker
+                // --- Service Worker Implementation ---
                 if ('serviceWorker' in navigator) {
                     const swCode = `
-                        const CACHE_NAME = 'pharmasoft-pwa-v1';
+                        const CACHE_NAME = 'pharmacy-app-cache-v1';
                         const urlsToCache = [
-                            '/',
-                            './pharmacy-billing.html', // Caches itself
+                            './',
+                            'https://cdn.tailwindcss.com',
+                            'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+                            'https://cdn.jsdelivr.net/npm/fuse.js@6.6.2',
+                            'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js',
+                            'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js',
+                            'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'
                         ];
+
                         self.addEventListener('install', event => {
-                            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
+                            event.waitUntil(
+                                caches.open(CACHE_NAME)
+                                    .then(cache => {
+                                        console.log('Opened cache');
+                                        return cache.addAll(urlsToCache);
+                                    })
+                            );
                         });
+
                         self.addEventListener('fetch', event => {
-                            event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
+                            event.respondWith(
+                                caches.match(event.request)
+                                    .then(response => {
+                                        // Cache hit - return response
+                                        if (response) {
+                                            return response;
+                                        }
+                                        return fetch(event.request);
+                                    }
+                                )
+                            );
                         });
                     `;
                     const swBlob = new Blob([swCode], { type: 'application/javascript' });
-                    const swURL = URL.createObjectURL(swBlob);
-                    navigator.serviceWorker.register(swURL)
-                        .then(reg => console.log('Service Worker registered.', reg))
-                        .catch(err => console.error('Service Worker registration failed:', err));
+                    const swUrl = URL.createObjectURL(swBlob);
+
+                    navigator.serviceWorker.register(swUrl)
+                        .then(registration => {
+                            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        }).catch(error => {
+                            console.log('ServiceWorker registration failed: ', error);
+                        });
                 }
                 
-                // 3. Handle Install Prompt
+                // --- Handle Install Prompt ---
                 let deferredPrompt;
                 const installBtn = document.getElementById('install-btn');
                 window.addEventListener('beforeinstallprompt', (e) => {
@@ -990,8 +1017,7 @@
                 installBtn.addEventListener('click', async () => {
                     if (deferredPrompt) {
                         deferredPrompt.prompt();
-                        const { outcome } = await deferredPrompt.userChoice;
-                        console.log(`User response to the install prompt: ${outcome}`);
+                        await deferredPrompt.userChoice;
                         deferredPrompt = null;
                         installBtn.classList.add('hidden');
                     }
@@ -1007,5 +1033,4 @@
     </script>
 </body>
 </html>
-
 
