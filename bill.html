@@ -375,52 +375,108 @@
         
         // --- Main Application Logic ---
         const App = {
-            state: { products: [], sales: [], currentBill: { items: [], customerName: '', subtotal: 0, gst: 0, total: 0 }, fuse: null, db: null, auth: null, productsUnsubscribe: null, salesUnsubscribe: null },
+            state: { 
+                products: [], 
+                sales: [], 
+                currentBill: { items: [], customerName: '', subtotal: 0, gst: 0, total: 0 }, 
+                fuse: null, 
+                db: null, 
+                auth: null, 
+                productsUnsubscribe: null, 
+                salesUnsubscribe: null 
+            },
+
             async init() {
-                this.setupPWA(); this.bindEvents(); this.updateDateTime(); setInterval(this.updateDateTime, 1000); this.prepareNewBill(); this.handleConnectionStatus();
+                this.setupPWA(); 
+                this.bindEvents(); 
+                this.updateDateTime(); 
+                setInterval(this.updateDateTime, 1000); 
+                this.prepareNewBill(); 
+                this.handleConnectionStatus();
                 try {
                     const app = initializeApp(firebaseConfig);
-                    this.state.db = getFirestore(app); this.state.auth = getAuth(app);
+                    this.state.db = getFirestore(app); 
+                    this.state.auth = getAuth(app);
                     await enableIndexedDbPersistence(this.state.db);
                     console.log("Firebase offline persistence enabled.");
                     this.handleAuthentication();
                 } catch (err) {
                     console.error("Critical Firebase initialization error:", err);
                     this.showAlert("FATAL: Could not initialize the database. The app cannot function.");
-                    if (err.code === 'failed-precondition') this.showAlert("Offline mode failed: Multiple tabs are open. Please close other tabs and reload.");
+                    if (err.code === 'failed-precondition') {
+                        this.showAlert("Offline mode failed: Multiple tabs are open. Please close other tabs and reload.");
+                    }
                 }
             },
+
             handleAuthentication() {
                 onAuthStateChanged(this.state.auth, user => {
-                    if (user) { console.log("User is signed in:", user.uid); this.setupFirestoreListeners(); } 
-                    else {
+                    if (user) { 
+                        console.log("User is signed in:", user.uid); 
+                        this.setupFirestoreListeners(); 
+                    } else {
                         signInAnonymously(this.state.auth).catch(error => {
                             console.error("Anonymous sign-in failed:", error);
-                            if (error.code === 'auth/configuration-not-found') this.showAlert("Authentication Error: Anonymous sign-in is not enabled in your Firebase Console.");
-                            else this.showAlert("Could not connect to the authentication service.");
+                            if (error.code === 'auth/configuration-not-found') {
+                                this.showAlert("Authentication Error: Anonymous sign-in is not enabled in your Firebase Console.");
+                            } else {
+                                this.showAlert("Could not connect to the authentication service.");
+                            }
                         });
                     }
                 });
             },
+
             setupFirestoreListeners() {
                 if (this.state.productsUnsubscribe) this.state.productsUnsubscribe();
                 this.state.productsUnsubscribe = onSnapshot(collection(this.state.db, "products"), (snapshot) => {
-                    this.state.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); this.renderInventory(); this.initFuse();
+                    this.state.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+                    this.renderInventory(); 
+                    this.initFuse();
                 }, (error) => console.error("Error fetching products:", error));
 
                 if (this.state.salesUnsubscribe) this.state.salesUnsubscribe();
                 this.state.salesUnsubscribe = onSnapshot(collection(this.state.db, "sales"), (snapshot) => {
-                    this.state.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); this.renderReports();
+                    this.state.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+                    this.renderReports();
                 }, (error) => console.error("Error fetching sales reports:", error));
             },
-            initFuse() { this.state.fuse = new Fuse(this.state.products, { keys: ['name'], includeScore: true, threshold: 0.4 }); },
-            updateDateTime() { document.getElementById('current-date-time').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }); },
-            bindEvents() { document.getElementById('product-form').addEventListener('submit', this.handleProductFormSubmit.bind(this)); document.getElementById('product-search').addEventListener('input', this.handleProductSearch.bind(this)); document.getElementById('report-date-filter').addEventListener('change', () => this.renderReports()); },
+
+            initFuse() { 
+                this.state.fuse = new Fuse(this.state.products, { keys: ['name'], includeScore: true, threshold: 0.4 }); 
+            },
+
+            updateDateTime() { 
+                document.getElementById('current-date-time').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }); 
+            },
+
+            bindEvents() { 
+                document.getElementById('product-form').addEventListener('submit', this.handleProductFormSubmit.bind(this)); 
+                document.getElementById('product-search').addEventListener('input', this.handleProductSearch.bind(this)); 
+                document.getElementById('report-date-filter').addEventListener('change', () => this.renderReports()); 
+            },
+
+            // FIX: Added a robust utility function to handle both JS Dates and Firestore Timestamps
+            getJsDate(dateObject) {
+                if (!dateObject) return null;
+                // If it's a Firestore Timestamp, convert it
+                if (typeof dateObject.toDate === 'function') {
+                    return dateObject.toDate();
+                }
+                // Otherwise, assume it's a JS Date or something Date can parse
+                return new Date(dateObject);
+            },
+
             renderInventory() {
-                const list = document.getElementById('inventory-list'), emptyMsg = document.getElementById('empty-inventory-message');
-                list.innerHTML = ''; emptyMsg.classList.toggle('hidden', this.state.products.length > 0);
+                const list = document.getElementById('inventory-list');
+                const emptyMsg = document.getElementById('empty-inventory-message');
+                list.innerHTML = ''; 
+                emptyMsg.classList.toggle('hidden', this.state.products.length > 0);
+                
                 [...this.state.products].sort((a, b) => a.name.localeCompare(b.name)).forEach(product => {
-                    const expiryDate = new Date(product.expiry), today = new Date(); today.setHours(0,0,0,0);
+                    const expiryDate = new Date(product.expiry);
+                    const today = new Date(); 
+                    today.setHours(0,0,0,0);
                     const isExpired = product.expiry && expiryDate < today;
                     const row = document.createElement('tr');
                     row.className = isExpired ? 'bg-red-50' : (product.stock < 10 ? 'bg-yellow-50' : '');
@@ -428,87 +484,144 @@
                     list.appendChild(row);
                 });
             },
+
             renderReports() {
-                const list = document.getElementById('reports-list'), emptyMsg = document.getElementById('empty-reports-message');
-                const dateFilterValue = document.getElementById('report-date-filter').value; list.innerHTML = '';
+                const list = document.getElementById('reports-list');
+                const emptyMsg = document.getElementById('empty-reports-message');
+                const dateFilterValue = document.getElementById('report-date-filter').value; 
+                list.innerHTML = '';
+
                 let filteredSales = this.state.sales;
                 if(dateFilterValue) {
-                    const filterDate = new Date(dateFilterValue); const startOfDay = new Date(filterDate.setHours(0,0,0,0)); const endOfDay = new Date(filterDate.setDate(filterDate.getDate() + 1));
+                    const filterDate = new Date(dateFilterValue); 
+                    const startOfDay = new Date(filterDate.setHours(0,0,0,0)); 
+                    const endOfDay = new Date(filterDate.setDate(filterDate.getDate() + 1));
                     filteredSales = this.state.sales.filter(sale => { 
-                        // Handle both Firestore Timestamps and JS Dates from offline saves
-                        const saleDate = sale.date && sale.date.toDate ? sale.date.toDate() : new Date(sale.date);
-                        return saleDate >= startOfDay && saleDate < endOfDay; 
+                        const saleDate = this.getJsDate(sale.date); // FIX: Use robust date handling
+                        return saleDate && saleDate >= startOfDay && saleDate < endOfDay; 
                     });
                 }
                 emptyMsg.classList.toggle('hidden', filteredSales.length > 0);
+
                 [...filteredSales].sort((a, b) => {
-                    const dateA = a.date && a.date.toDate ? a.date.toDate() : new Date(a.date);
-                    const dateB = b.date && b.date.toDate ? b.date.toDate() : new Date(b.date);
+                    const dateA = this.getJsDate(a.date); // FIX: Use robust date handling
+                    const dateB = this.getJsDate(b.date);
                     return dateB - dateA;
                 }).forEach(sale => {
                     const row = document.createElement('tr'); 
-                    const saleDate = sale.date && sale.date.toDate ? sale.date.toDate() : new Date(sale.date);
+                    const saleDate = this.getJsDate(sale.date); // FIX: Use robust date handling
                     row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">${sale.id.slice(-8)}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${saleDate.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sale.customerName || 'N/A'}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${sale.items.length}</td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹${sale.total.toFixed(2)}</td>`;
                     list.appendChild(row);
                 });
             },
-            clearDateFilter() { document.getElementById('report-date-filter').value = ''; this.renderReports(); },
+
+            clearDateFilter() { 
+                document.getElementById('report-date-filter').value = ''; 
+                this.renderReports(); 
+            },
+
             async handleProductFormSubmit(e) {
-                e.preventDefault(); const id = document.getElementById('product-id').value;
-                const product = { name: document.getElementById('product-name').value, price: parseFloat(document.getElementById('product-price').value), stock: parseInt(document.getElementById('product-stock').value), expiry: document.getElementById('product-expiry').value };
+                e.preventDefault(); 
+                const id = document.getElementById('product-id').value;
+                const product = { 
+                    name: document.getElementById('product-name').value, 
+                    price: parseFloat(document.getElementById('product-price').value), 
+                    stock: parseInt(document.getElementById('product-stock').value), 
+                    expiry: document.getElementById('product-expiry').value 
+                };
                 try {
-                    if (id) await updateDoc(doc(this.state.db, "products", id), product); else await addDoc(collection(this.state.db, "products"), product);
-                    this.showAlert(`Product ${id ? 'updated' : 'added'} successfully!`); this.hideProductModal();
-                } catch (error) { console.error("Error saving product:", error); this.showAlert("Error: Could not save product."); }
-            },
-            editProduct(id) {
-                const product = this.state.products.find(p => p.id === id); if (!product) return;
-                document.getElementById('modal-title').textContent = 'Edit Product'; document.getElementById('product-id').value = product.id;
-                document.getElementById('product-name').value = product.name; document.getElementById('product-price').value = product.price;
-                document.getElementById('product-stock').value = product.stock; document.getElementById('product-expiry').value = product.expiry; this.showProductModal();
-            },
-            async deleteProduct(id) {
-                if (await this.showConfirm("Are you sure you want to delete this product?")) {
-                    try { await deleteDoc(doc(this.state.db, "products", id)); this.showAlert("Product deleted."); }
-                    catch (error) { console.error("Error deleting product:", error); this.showAlert("Error: Could not delete product."); }
+                    if (id) {
+                        await updateDoc(doc(this.state.db, "products", id), product); 
+                    } else {
+                        await addDoc(collection(this.state.db, "products"), product);
+                    }
+                    this.showAlert(`Product ${id ? 'updated' : 'added'} successfully!`); 
+                    this.hideProductModal();
+                } catch (error) { 
+                    console.error("Error saving product:", error); 
+                    this.showAlert("Error: Could not save product."); 
                 }
             },
+
+            editProduct(id) {
+                const product = this.state.products.find(p => p.id === id); 
+                if (!product) return;
+                document.getElementById('modal-title').textContent = 'Edit Product'; 
+                document.getElementById('product-id').value = product.id;
+                document.getElementById('product-name').value = product.name; 
+                document.getElementById('product-price').value = product.price;
+                document.getElementById('product-stock').value = product.stock; 
+                document.getElementById('product-expiry').value = product.expiry; 
+                this.showProductModal();
+            },
+
+            async deleteProduct(id) {
+                if (await this.showConfirm("Are you sure you want to delete this product?")) {
+                    try { 
+                        await deleteDoc(doc(this.state.db, "products", id)); 
+                        this.showAlert("Product deleted."); 
+                    } catch (error) { 
+                        console.error("Error deleting product:", error); 
+                        this.showAlert("Error: Could not delete product."); 
+                    }
+                }
+            },
+
             async saveBill(andPrint = false) {
-                if (this.state.currentBill.items.length === 0) { this.showAlert("Cannot save an empty bill."); return; }
+                if (this.state.currentBill.items.length === 0) { 
+                    this.showAlert("Cannot save an empty bill."); 
+                    return; 
+                }
                 try {
                     for (const item of this.state.currentBill.items) {
                         const productInState = this.state.products.find(p => p.id === item.id);
-                        if (!productInState) throw new Error(`Product "${item.name}" not found locally. Data might be syncing.`);
-                        if (productInState.stock < item.quantity) throw new Error(`Not enough stock for "${item.name}". Only ${productInState.stock} left.`);
+                        if (!productInState) {
+                            throw new Error(`Product "${item.name}" not found locally. Data might be syncing.`);
+                        }
+                        if (productInState.stock < item.quantity) {
+                            throw new Error(`Not enough stock for "${item.name}". Only ${productInState.stock} left.`);
+                        }
                     }
+                    
                     const batch = writeBatch(this.state.db);
+                    
                     this.state.currentBill.items.forEach(item => {
                         const productRef = doc(this.state.db, "products", item.id);
                         const productInState = this.state.products.find(p => p.id === item.id);
                         batch.update(productRef, { stock: productInState.stock - item.quantity });
                     });
+                    
                     const newSaleRef = doc(collection(this.state.db, "sales"));
                     const newSaleData = {
-                        date: new Date(), // FIX: Use a client-side date for reliable offline saving.
+                        date: new Date(), // Use client-side date for reliable offline saving.
                         customerName: document.getElementById('customer-name').value.trim(),
-                        items: this.state.currentBill.items, subtotal: this.state.currentBill.subtotal,
-                        gst: this.state.currentBill.gst, total: this.state.currentBill.total
+                        items: this.state.currentBill.items, 
+                        subtotal: this.state.currentBill.subtotal,
+                        gst: this.state.currentBill.gst, 
+                        total: this.state.currentBill.total
                     };
                     batch.set(newSaleRef, newSaleData);
+                    
                     await batch.commit();
 
                     this.showAlert(`Bill saved successfully!`);
-                    if (andPrint) this.printBill({ ...newSaleData, id: newSaleRef.id });
+                    if (andPrint) {
+                        this.printBill({ ...newSaleData, id: newSaleRef.id });
+                    }
                     this.prepareNewBill();
                 } catch (error) {
                     console.error("Failed to save bill: ", error);
                     this.showAlert(`Error saving bill: ${error.message}`);
                 }
             },
+
             renderCurrentBill() {
-                const billItems = document.getElementById('invoice-items'), emptyMsg = document.getElementById('empty-cart-message');
-                billItems.innerHTML = ''; emptyMsg.classList.toggle('hidden', this.state.currentBill.items.length > 0);
+                const billItems = document.getElementById('invoice-items');
+                const emptyMsg = document.getElementById('empty-cart-message');
+                billItems.innerHTML = ''; 
+                emptyMsg.classList.toggle('hidden', this.state.currentBill.items.length > 0);
                 billItems.classList.toggle('hidden', this.state.currentBill.items.length === 0);
+                
                 this.state.currentBill.items.forEach(item => {
                     const row = document.createElement('tr');
                     row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.name}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₹${item.price.toFixed(2)}</td><td class="px-6 py-4 whitespace-nowrap"><input type="number" value="${item.quantity}" min="1" max="${item.maxQuantity}" onchange="App.updateBillItemQuantity('${item.id}', this.value)" class="w-20 p-1 border border-gray-300 rounded-md"></td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹${(item.price * item.quantity).toFixed(2)}</td><td class="px-6 py-4 whitespace-nowrap text-right"><button onclick="App.removeBillItem('${item.id}')" class="text-red-500 hover:text-red-700 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg></button></td>`;
@@ -516,22 +629,33 @@
                 });
                 this.calculateTotals();
             },
+
             calculateTotals() {
                 const subtotal = this.state.currentBill.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-                const gst = subtotal * 0.05, total = subtotal + gst;
+                const gst = subtotal * 0.05;
+                const total = subtotal + gst;
                 this.state.currentBill = { ...this.state.currentBill, subtotal, gst, total };
                 document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
                 document.getElementById('gst').textContent = `₹${gst.toFixed(2)}`;
                 document.getElementById('grand-total').textContent = `₹${total.toFixed(2)}`;
             },
+
             handleProductSearch(e) {
-                const query = e.target.value, resultsEl = document.getElementById('search-results');
-                resultsEl.innerHTML = ''; if (query.length < 1 || !this.state.fuse) { resultsEl.classList.add('hidden'); return; }
-                const results = this.state.fuse.search(query); resultsEl.classList.remove('hidden');
-                if (results.length === 0) { resultsEl.innerHTML = `<div class="p-3 text-gray-500">No results found</div>`; } 
-                else {
+                const query = e.target.value;
+                const resultsEl = document.getElementById('search-results');
+                resultsEl.innerHTML = ''; 
+                if (query.length < 1 || !this.state.fuse) { 
+                    resultsEl.classList.add('hidden'); 
+                    return; 
+                }
+                const results = this.state.fuse.search(query); 
+                resultsEl.classList.remove('hidden');
+                if (results.length === 0) { 
+                    resultsEl.innerHTML = `<div class="p-3 text-gray-500">No results found</div>`; 
+                } else {
                     results.slice(0, 10).forEach(result => {
-                        const product = result.item; const itemEl = document.createElement('div');
+                        const product = result.item; 
+                        const itemEl = document.createElement('div');
                         itemEl.className = 'p-3 hover:bg-blue-50 cursor-pointer border-b';
                         itemEl.innerHTML = `<div class="font-medium">${product.name}</div><div class="text-sm text-gray-500">Stock: ${product.stock} | Price: ₹${product.price.toFixed(2)}</div>`;
                         itemEl.onclick = () => this.addProductToBill(product.id);
@@ -539,68 +663,167 @@
                     });
                 }
             },
+
             addProductToBill(productId) {
-                document.getElementById('product-search').value = ''; document.getElementById('search-results').classList.add('hidden');
-                const product = this.state.products.find(p => p.id === productId); const existingItem = this.state.currentBill.items.find(item => item.id === productId);
+                document.getElementById('product-search').value = ''; 
+                document.getElementById('search-results').classList.add('hidden');
+                const product = this.state.products.find(p => p.id === productId); 
+                const existingItem = this.state.currentBill.items.find(item => item.id === productId);
                 if(existingItem) {
-                    if (existingItem.quantity < product.stock) this.updateBillItemQuantity(productId, existingItem.quantity + 1); 
-                    else this.showAlert(`Cannot add more of ${product.name}. Stock limit reached.`);
+                    if (existingItem.quantity < product.stock) {
+                        this.updateBillItemQuantity(productId, existingItem.quantity + 1); 
+                    } else {
+                        this.showAlert(`Cannot add more of ${product.name}. Stock limit reached.`);
+                    }
                     return;
                 }
                 if (product && product.stock > 0) {
                     this.state.currentBill.items.push({ id: product.id, name: product.name, price: product.price, quantity: 1, maxQuantity: product.stock });
                     this.renderCurrentBill();
-                } else this.showAlert('Product is out of stock.');
+                } else {
+                    this.showAlert('Product is out of stock.');
+                }
             },
+
             updateBillItemQuantity(productId, newQuantity) {
-                const item = this.state.currentBill.items.find(item => item.id === productId); const product = this.state.products.find(p => p.id === productId);
-                newQuantity = parseInt(newQuantity); if (!item || newQuantity <= 0) { this.removeBillItem(productId); return; }
-                if (newQuantity > product.stock) { this.showAlert(`Only ${product.stock} units of ${product.name} available.`); item.quantity = product.stock; } 
-                else { item.quantity = newQuantity; }
+                const item = this.state.currentBill.items.find(item => item.id === productId); 
+                const product = this.state.products.find(p => p.id === productId);
+                newQuantity = parseInt(newQuantity); 
+                if (!item || newQuantity <= 0) { 
+                    this.removeBillItem(productId); 
+                    return; 
+                }
+                if (newQuantity > product.stock) { 
+                    this.showAlert(`Only ${product.stock} units of ${product.name} available.`); 
+                    item.quantity = product.stock; 
+                } else { 
+                    item.quantity = newQuantity; 
+                }
                 this.renderCurrentBill();
             },
-            removeBillItem(productId) { this.state.currentBill.items = this.state.currentBill.items.filter(item => item.id !== productId); this.renderCurrentBill(); },
-            prepareNewBill() { document.getElementById('invoice-id').textContent = `INV-${Date.now().toString().slice(-8)}`; document.getElementById('customer-name').value = ''; this.state.currentBill = { items: [], customerName: '', subtotal: 0, gst: 0, total: 0 }; this.renderCurrentBill(); },
-            async clearBill() { if (await this.showConfirm('Are you sure you want to clear the current bill?')) this.prepareNewBill(); },
-            saveAndPrintBill() { this.saveBill(true); },
+
+            removeBillItem(productId) { 
+                this.state.currentBill.items = this.state.currentBill.items.filter(item => item.id !== productId); 
+                this.renderCurrentBill(); 
+            },
+
+            prepareNewBill() { 
+                document.getElementById('invoice-id').textContent = `INV-${Date.now().toString().slice(-8)}`; 
+                document.getElementById('customer-name').value = ''; 
+                this.state.currentBill = { items: [], customerName: '', subtotal: 0, gst: 0, total: 0 }; 
+                this.renderCurrentBill(); 
+            },
+
+            async clearBill() { 
+                if (await this.showConfirm('Are you sure you want to clear the current bill?')) {
+                    this.prepareNewBill(); 
+                }
+            },
+
+            saveAndPrintBill() { 
+                this.saveBill(true); 
+            },
+
             printBill(sale) {
                 const printArea = document.getElementById('print-area');
-                const saleDate = sale.date && sale.date.toDate ? sale.date.toDate() : new Date(sale.date);
+                const saleDate = this.getJsDate(sale.date); // FIX: Use robust date handling
+
+                if (!saleDate || isNaN(saleDate.getTime())) {
+                    console.error("Invalid date provided to printBill:", sale.date);
+                    this.showAlert("Cannot print bill: Invalid date format.");
+                    return; // Stop execution
+                }
+
                 const printDate = saleDate.toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
                 let itemsHtml = sale.items.map(item => `<tr class="border-b border-slate-200"><td class="py-2 px-1">${item.name}</td><td class="py-2 px-1 text-center">${item.quantity}</td><td class="py-2 px-1 text-right">₹${item.price.toFixed(2)}</td><td class="py-2 px-1 text-right">₹${(item.quantity * item.price).toFixed(2)}</td></tr>`).join('');
                 printArea.innerHTML = `<div style="max-width: 800px; margin: 20px auto; padding: 20px; font-family: 'Inter', sans-serif; color: #1f2937; border: 1px solid #e5e7eb;"><div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;"><div><h1 style="font-size: 2.25rem; font-weight: 700; color: #3b82f6; margin: 0;">Mazumder Pharmacy</h1><p style="margin: 0; color: #6b7280;">Your Trusted Pharmacy</p></div><h2 style="font-size: 1.5rem; font-weight: 600; color: #374151; margin: 0; text-align: right;">TAX INVOICE</h2></div><div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.875rem;"><div><p style="margin: 0;"><strong>From:</strong> Mazumder Pharmacy</p><p style="margin: 0;">123 Health St, Wellness City</p><p style="margin: 0;">Email: contact@mazumderpharmacy.com</p></div><div style="text-align: right;"><p style="margin: 0;"><strong>To:</strong> ${sale.customerName || 'Walk-in Customer'}</p><p style="margin: 0;"><strong>Invoice ID:</strong> ${sale.id.slice(-8)}</p><p style="margin: 0;"><strong>Date:</strong> ${printDate}</p></div></div><div style="margin-top: 30px;"><table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;"><thead><tr style="background-color: #f3f4f6;"><th style="padding: 10px 4px; text-align: left; border-bottom: 1px solid #d1d5db;">Item Description</th><th style="padding: 10px 4px; text-align: center; border-bottom: 1px solid #d1d5db;">Qty</th><th style="padding: 10px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Rate</th><th style="padding: 10px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Amount</th></tr></thead><tbody>${itemsHtml}</tbody></table></div><div style="display: flex; justify-content: flex-end; margin-top: 20px;"><div style="width: 250px; font-size: 0.875rem;"><div style="display: flex; justify-content: space-between; padding: 4px 0;"><span>Subtotal:</span><span>₹${sale.subtotal.toFixed(2)}</span></div><div style="display: flex; justify-content: space-between; padding: 4px 0;"><span>GST (5%):</span><span>₹${sale.gst.toFixed(2)}</span></div><div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 5px; border-top: 2px solid #374151; font-size: 1.125rem; font-weight: 600;"><span>Grand Total:</span><span>₹${sale.total.toFixed(2)}</span></div></div></div><div style="margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 15px; text-align: center; font-size: 0.75rem; color: #6b7280;"><p>Thank you for your purchase! | All items are non-returnable.</p><p>This is a computer-generated invoice and does not require a signature.</p></div></div>`;
                 window.print();
             },
-            showProductModal() { document.getElementById('product-modal').classList.add('flex'); },
-            hideProductModal() { document.getElementById('product-modal').classList.remove('flex'); document.getElementById('product-form').reset(); document.getElementById('product-id').value = ''; document.getElementById('modal-title').textContent = 'Add New Product'; },
-            showAlert(message) { document.getElementById('alert-message').textContent = message; document.getElementById('alert-modal').classList.add('flex'); },
-            hideAlert() { document.getElementById('alert-modal').classList.remove('flex'); },
+
+            showProductModal() { 
+                document.getElementById('product-modal').classList.add('flex'); 
+            },
+            hideProductModal() { 
+                document.getElementById('product-modal').classList.remove('flex'); 
+                document.getElementById('product-form').reset(); 
+                document.getElementById('product-id').value = ''; 
+                document.getElementById('modal-title').textContent = 'Add New Product'; 
+            },
+            showAlert(message) { 
+                document.getElementById('alert-message').textContent = message; 
+                document.getElementById('alert-modal').classList.add('flex'); 
+            },
+            hideAlert() { 
+                document.getElementById('alert-modal').classList.remove('flex'); 
+            },
             showConfirm(message) {
                 return new Promise(resolve => {
-                    const confirmModal = document.getElementById('confirm-modal'), okBtn = document.getElementById('confirm-ok-btn'), cancelBtn = document.getElementById('confirm-cancel-btn');
-                    document.getElementById('confirm-message').textContent = message; confirmModal.classList.add('flex');
-                    const cleanup = () => { okBtn.replaceWith(okBtn.cloneNode(true)); cancelBtn.replaceWith(cancelBtn.cloneNode(true)); confirmModal.classList.remove('flex'); };
-                    document.getElementById('confirm-ok-btn').onclick = () => { cleanup(); resolve(true); };
-                    document.getElementById('confirm-cancel-btn').onclick = () => { cleanup(); resolve(false); };
+                    const confirmModal = document.getElementById('confirm-modal');
+                    const okBtn = document.getElementById('confirm-ok-btn');
+                    const cancelBtn = document.getElementById('confirm-cancel-btn');
+                    document.getElementById('confirm-message').textContent = message; 
+                    confirmModal.classList.add('flex');
+                    
+                    const onOk = () => {
+                        confirmModal.classList.remove('flex');
+                        resolve(true);
+                        okBtn.removeEventListener('click', onOk);
+                        cancelBtn.removeEventListener('click', onCancel);
+                    };
+                    const onCancel = () => {
+                        confirmModal.classList.remove('flex');
+                        resolve(false);
+                        okBtn.removeEventListener('click', onOk);
+                        cancelBtn.removeEventListener('click', onCancel);
+                    };
+                    
+                    okBtn.addEventListener('click', onOk);
+                    cancelBtn.addEventListener('click', onCancel);
                 });
             },
+
             handleConnectionStatus() {
-                const statusEl = document.getElementById('connection-status'), dot = statusEl.querySelector('.status-dot'), text = statusEl.querySelector('span:last-child');
-                const updateOnlineStatus = () => { const online = navigator.onLine; dot.classList.toggle('online', online); dot.classList.toggle('offline', !online); text.textContent = online ? 'Online' : 'Offline'; };
-                window.addEventListener('online', updateOnlineStatus); window.addEventListener('offline', updateOnlineStatus); updateOnlineStatus();
+                const statusEl = document.getElementById('connection-status');
+                const dot = statusEl.querySelector('.status-dot');
+                const text = statusEl.querySelector('span:last-child');
+                const updateOnlineStatus = () => { 
+                    const online = navigator.onLine; 
+                    dot.classList.toggle('online', online); 
+                    dot.classList.toggle('offline', !online); 
+                    text.textContent = online ? 'Online' : 'Offline'; 
+                };
+                window.addEventListener('online', updateOnlineStatus); 
+                window.addEventListener('offline', updateOnlineStatus); 
+                updateOnlineStatus();
             },
+
             setupPWA() {
                 const manifest = {"name": "Mazumder Pharmacy PWA","short_name": "MazumderRx","start_url": ".","display": "standalone","background_color": "#f9fafb","theme_color": "#3b82f6", "icons": [{"src": "https://placehold.co/192x192/3b82f6/ffffff?text=MP", "sizes": "192x192", "type": "image/png" }, {"src": "https://placehold.co/512x512/3b82f6/ffffff?text=MP", "sizes": "512x512", "type": "image/png" }]};
                 document.querySelector('#manifest-placeholder').setAttribute('href', URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' })));
+                
                 if ('serviceWorker' in navigator) {
                     const swCode = `const CACHE_NAME = 'pharmacy-app-cache-v1'; const urlsToCache = ['./']; self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache)))); self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));`;
                     navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' }))).then(reg => console.log('SW registered!', reg)).catch(err => console.error('SW registration failed:', err));
                 }
-                let deferredPrompt; window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('install-btn').classList.remove('hidden'); });
-                document.getElementById('install-btn').addEventListener('click', async () => { if(deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; document.getElementById('install-btn').classList.add('hidden'); }});
+
+                let deferredPrompt; 
+                window.addEventListener('beforeinstallprompt', (e) => { 
+                    e.preventDefault(); 
+                    deferredPrompt = e; 
+                    document.getElementById('install-btn').classList.remove('hidden'); 
+                });
+                document.getElementById('install-btn').addEventListener('click', async () => { 
+                    if(deferredPrompt) { 
+                        deferredPrompt.prompt(); 
+                        await deferredPrompt.userChoice; 
+                        deferredPrompt = null; 
+                        document.getElementById('install-btn').classList.add('hidden'); 
+                    }
+                });
             }
         };
-        window.App = App; document.addEventListener('DOMContentLoaded', () => App.init());
+        window.App = App; 
+        document.addEventListener('DOMContentLoaded', () => App.init());
     </script>
 </body>
 </html>
