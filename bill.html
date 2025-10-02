@@ -455,15 +455,12 @@
                 document.getElementById('product-search').addEventListener('input', this.handleProductSearch.bind(this)); 
                 document.getElementById('report-date-filter').addEventListener('change', () => this.renderReports()); 
             },
-
-            // FIX: Added a robust utility function to handle both JS Dates and Firestore Timestamps
+            
             getJsDate(dateObject) {
                 if (!dateObject) return null;
-                // If it's a Firestore Timestamp, convert it
                 if (typeof dateObject.toDate === 'function') {
                     return dateObject.toDate();
                 }
-                // Otherwise, assume it's a JS Date or something Date can parse
                 return new Date(dateObject);
             },
 
@@ -497,19 +494,19 @@
                     const startOfDay = new Date(filterDate.setHours(0,0,0,0)); 
                     const endOfDay = new Date(filterDate.setDate(filterDate.getDate() + 1));
                     filteredSales = this.state.sales.filter(sale => { 
-                        const saleDate = this.getJsDate(sale.date); // FIX: Use robust date handling
+                        const saleDate = this.getJsDate(sale.date);
                         return saleDate && saleDate >= startOfDay && saleDate < endOfDay; 
                     });
                 }
                 emptyMsg.classList.toggle('hidden', filteredSales.length > 0);
 
                 [...filteredSales].sort((a, b) => {
-                    const dateA = this.getJsDate(a.date); // FIX: Use robust date handling
+                    const dateA = this.getJsDate(a.date);
                     const dateB = this.getJsDate(b.date);
                     return dateB - dateA;
                 }).forEach(sale => {
                     const row = document.createElement('tr'); 
-                    const saleDate = this.getJsDate(sale.date); // FIX: Use robust date handling
+                    const saleDate = this.getJsDate(sale.date);
                     row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">${sale.id.slice(-8)}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${saleDate.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sale.customerName || 'N/A'}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${sale.items.length}</td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹${sale.total.toFixed(2)}</td>`;
                     list.appendChild(row);
                 });
@@ -568,11 +565,13 @@
             },
 
             async saveBill(andPrint = false) {
-                if (this.state.currentBill.items.length === 0) { 
-                    this.showAlert("Cannot save an empty bill."); 
-                    return; 
+                if (this.state.currentBill.items.length === 0) {
+                    this.showAlert("Cannot save an empty bill.");
+                    return;
                 }
+
                 try {
+                    // 1. Validate stock against local state
                     for (const item of this.state.currentBill.items) {
                         const productInState = this.state.products.find(p => p.id === item.id);
                         if (!productInState) {
@@ -582,15 +581,17 @@
                             throw new Error(`Not enough stock for "${item.name}". Only ${productInState.stock} left.`);
                         }
                     }
-                    
+
                     const batch = writeBatch(this.state.db);
-                    
+
+                    // 2. Prepare stock updates
                     this.state.currentBill.items.forEach(item => {
                         const productRef = doc(this.state.db, "products", item.id);
                         const productInState = this.state.products.find(p => p.id === item.id);
                         batch.update(productRef, { stock: productInState.stock - item.quantity });
                     });
                     
+                    // 3. Prepare the new sale record
                     const newSaleRef = doc(collection(this.state.db, "sales"));
                     const newSaleData = {
                         date: new Date(), // Use client-side date for reliable offline saving.
@@ -601,14 +602,22 @@
                         total: this.state.currentBill.total
                     };
                     batch.set(newSaleRef, newSaleData);
+
+                    // FIX: Create the object for printing BEFORE the commit to ensure it's stable.
+                    const saleForPrinting = { ...newSaleData, id: newSaleRef.id };
                     
+                    // 4. Commit the batch (this is queued offline if necessary)
                     await batch.commit();
 
                     this.showAlert(`Bill saved successfully!`);
+                    
+                    // 5. Print using the stable, pre-created object
                     if (andPrint) {
-                        this.printBill({ ...newSaleData, id: newSaleRef.id });
+                        this.printBill(saleForPrinting);
                     }
+                    
                     this.prepareNewBill();
+
                 } catch (error) {
                     console.error("Failed to save bill: ", error);
                     this.showAlert(`Error saving bill: ${error.message}`);
@@ -726,17 +735,17 @@
 
             printBill(sale) {
                 const printArea = document.getElementById('print-area');
-                const saleDate = this.getJsDate(sale.date); // FIX: Use robust date handling
+                const saleDate = this.getJsDate(sale.date);
 
                 if (!saleDate || isNaN(saleDate.getTime())) {
                     console.error("Invalid date provided to printBill:", sale.date);
                     this.showAlert("Cannot print bill: Invalid date format.");
-                    return; // Stop execution
+                    return;
                 }
 
                 const printDate = saleDate.toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
                 let itemsHtml = sale.items.map(item => `<tr class="border-b border-slate-200"><td class="py-2 px-1">${item.name}</td><td class="py-2 px-1 text-center">${item.quantity}</td><td class="py-2 px-1 text-right">₹${item.price.toFixed(2)}</td><td class="py-2 px-1 text-right">₹${(item.quantity * item.price).toFixed(2)}</td></tr>`).join('');
-                printArea.innerHTML = `<div style="max-width: 800px; margin: 20px auto; padding: 20px; font-family: 'Inter', sans-serif; color: #1f2937; border: 1px solid #e5e7eb;"><div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;"><div><h1 style="font-size: 2.25rem; font-weight: 700; color: #3b82f6; margin: 0;">Mazumder Pharmacy</h1><p style="margin: 0; color: #6b7280;">Your Trusted Pharmacy</p></div><h2 style="font-size: 1.5rem; font-weight: 600; color: #374151; margin: 0; text-align: right;">TAX INVOICE</h2></div><div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.875rem;"><div><p style="margin: 0;"><strong>From:</strong> Mazumder Pharmacy</p><p style="margin: 0;">123 Health St, Wellness City</p><p style="margin: 0;">Email: contact@mazumderpharmacy.com</p></div><div style="text-align: right;"><p style="margin: 0;"><strong>To:</strong> ${sale.customerName || 'Walk-in Customer'}</p><p style="margin: 0;"><strong>Invoice ID:</strong> ${sale.id.slice(-8)}</p><p style="margin: 0;"><strong>Date:</strong> ${printDate}</p></div></div><div style="margin-top: 30px;"><table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;"><thead><tr style="background-color: #f3f4f6;"><th style="padding: 10px 4px; text-align: left; border-bottom: 1px solid #d1d5db;">Item Description</th><th style="padding: 10px 4px; text-align: center; border-bottom: 1px solid #d1d5db;">Qty</th><th style="padding: 10px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Rate</th><th style="padding: 10px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Amount</th></tr></thead><tbody>${itemsHtml}</tbody></table></div><div style="display: flex; justify-content: flex-end; margin-top: 20px;"><div style="width: 250px; font-size: 0.875rem;"><div style="display: flex; justify-content: space-between; padding: 4px 0;"><span>Subtotal:</span><span>₹${sale.subtotal.toFixed(2)}</span></div><div style="display: flex; justify-content: space-between; padding: 4px 0;"><span>GST (5%):</span><span>₹${sale.gst.toFixed(2)}</span></div><div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 5px; border-top: 2px solid #374151; font-size: 1.125rem; font-weight: 600;"><span>Grand Total:</span><span>₹${sale.total.toFixed(2)}</span></div></div></div><div style="margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 15px; text-align: center; font-size: 0.75rem; color: #6b7280;"><p>Thank you for your purchase! | All items are non-returnable.</p><p>Developed by Aminul.</p></div></div>`;
+                printArea.innerHTML = `<div style="max-width: 800px; margin: 20px auto; padding: 20px; font-family: 'Inter', sans-serif; color: #1f2937; border: 1px solid #e5e7eb;"><div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;"><div><h1 style="font-size: 2.25rem; font-weight: 700; color: #3b82f6; margin: 0;">Mazumder Pharmacy</h1><p style="margin: 0; color: #6b7280;">Your Trusted Pharmacy</p></div><h2 style="font-size: 1.5rem; font-weight: 600; color: #374151; margin: 0; text-align: right;">TAX INVOICE</h2></div><div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.875rem;"><div><p style="margin: 0;"><strong>From:</strong> Mazumder Pharmacy</p><p style="margin: 0;">123 Health St, Wellness City</p><p style="margin: 0;">Email: contact@mazumderpharmacy.com</p></div><div style="text-align: right;"><p style="margin: 0;"><strong>To:</strong> ${sale.customerName || 'Walk-in Customer'}</p><p style="margin: 0;"><strong>Invoice ID:</strong> ${sale.id.slice(-8)}</p><p style="margin: 0;"><strong>Date:</strong> ${printDate}</p></div></div><div style="margin-top: 30px;"><table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;"><thead><tr style="background-color: #f3f4f6;"><th style="padding: 10px 4px; text-align: left; border-bottom: 1px solid #d1d5db;">Item Description</th><th style="padding: 10px 4px; text-align: center; border-bottom: 1px solid #d1d5db;">Qty</th><th style="padding: 10px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Rate</th><th style="padding: 10px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Amount</th></tr></thead><tbody>${itemsHtml}</tbody></table></div><div style="display: flex; justify-content: flex-end; margin-top: 20px;"><div style="width: 250px; font-size: 0.875rem;"><div style="display: flex; justify-content: space-between; padding: 4px 0;"><span>Subtotal:</span><span>₹${sale.subtotal.toFixed(2)}</span></div><div style="display: flex; justify-content: space-between; padding: 4px 0;"><span>GST (5%):</span><span>₹${sale.gst.toFixed(2)}</span></div><div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 5px; border-top: 2px solid #374151; font-size: 1.125rem; font-weight: 600;"><span>Grand Total:</span><span>₹${sale.total.toFixed(2)}</span></div></div></div><div style="margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 15px; text-align: center; font-size: 0.75rem; color: #6b7280;"><p>Thank you for your purchase! | All items are non-returnable.</p><p>This is a computer-generated invoice and does not require a signature.</p></div></div>`;
                 window.print();
             },
 
