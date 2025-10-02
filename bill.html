@@ -330,6 +330,17 @@
         </div>
     </div>
 
+    <!-- Print Confirmation Modal -->
+    <div id="print-confirm-modal" class="modal-backdrop items-center justify-center">
+        <div class="modal-content bg-white p-6 rounded-xl shadow-xl w-full max-w-sm text-center border border-slate-200">
+            <p id="print-confirm-message" class="text-gray-800 mb-6">Bill saved successfully!</p>
+            <div class="flex justify-center space-x-4">
+                <button id="print-confirm-close-btn" class="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-300 transition">Close</button>
+                <button id="print-confirm-print-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">Print Invoice</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Printable Invoice Area -->
     <div id="print-area" class="p-8 bg-white"></div>
 
@@ -571,30 +582,23 @@
                 }
 
                 try {
-                    // 1. Validate stock against local state
                     for (const item of this.state.currentBill.items) {
                         const productInState = this.state.products.find(p => p.id === item.id);
-                        if (!productInState) {
-                            throw new Error(`Product "${item.name}" not found locally. Data might be syncing.`);
-                        }
-                        if (productInState.stock < item.quantity) {
-                            throw new Error(`Not enough stock for "${item.name}". Only ${productInState.stock} left.`);
-                        }
+                        if (!productInState) throw new Error(`Product "${item.name}" not found locally. Data might be syncing.`);
+                        if (productInState.stock < item.quantity) throw new Error(`Not enough stock for "${item.name}". Only ${productInState.stock} left.`);
                     }
 
                     const batch = writeBatch(this.state.db);
 
-                    // 2. Prepare stock updates
                     this.state.currentBill.items.forEach(item => {
                         const productRef = doc(this.state.db, "products", item.id);
                         const productInState = this.state.products.find(p => p.id === item.id);
                         batch.update(productRef, { stock: productInState.stock - item.quantity });
                     });
                     
-                    // 3. Prepare the new sale record
                     const newSaleRef = doc(collection(this.state.db, "sales"));
                     const newSaleData = {
-                        date: new Date(), // Use client-side date for reliable offline saving.
+                        date: new Date(),
                         customerName: document.getElementById('customer-name').value.trim(),
                         items: this.state.currentBill.items, 
                         subtotal: this.state.currentBill.subtotal,
@@ -603,17 +607,14 @@
                     };
                     batch.set(newSaleRef, newSaleData);
 
-                    // FIX: Create the object for printing BEFORE the commit to ensure it's stable.
                     const saleForPrinting = { ...newSaleData, id: newSaleRef.id };
                     
-                    // 4. Commit the batch (this is queued offline if necessary)
                     await batch.commit();
-
-                    this.showAlert(`Bill saved successfully!`);
                     
-                    // 5. Print using the stable, pre-created object
                     if (andPrint) {
-                        this.printBill(saleForPrinting);
+                        this.showPrintModal(saleForPrinting);
+                    } else {
+                        this.showAlert(`Bill saved successfully!`);
                     }
                     
                     this.prepareNewBill();
@@ -789,6 +790,29 @@
                     okBtn.addEventListener('click', onOk);
                     cancelBtn.addEventListener('click', onCancel);
                 });
+            },
+
+            showPrintModal(saleData) {
+                const modal = document.getElementById('print-confirm-modal');
+                const printBtn = document.getElementById('print-confirm-print-btn');
+                const closeBtn = document.getElementById('print-confirm-close-btn');
+                
+                modal.classList.add('flex');
+
+                const printAndClose = () => {
+                    this.printBill(saleData);
+                    closeAndCleanup();
+                };
+
+                const closeAndCleanup = () => {
+                    modal.classList.remove('flex');
+                    // Important to clone and replace to remove listeners effectively
+                    printBtn.replaceWith(printBtn.cloneNode(true));
+                    closeBtn.replaceWith(closeBtn.cloneNode(true));
+                };
+
+                document.getElementById('print-confirm-print-btn').addEventListener('click', printAndClose);
+                document.getElementById('print-confirm-close-btn').addEventListener('click', closeAndCleanup);
             },
 
             handleConnectionStatus() {
