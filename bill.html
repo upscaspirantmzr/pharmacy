@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mazumder Pharmacy - Billing Software</title>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3b82f6"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PharmaSoft PWA">
+    <link id="manifest-placeholder" rel="manifest">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(170deg, #f3f4f6, #e5e7eb);
+        }
+        .tab-active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background-color: #ffffff;
+            font-weight: 600;
+        }
+        .tab-btn {
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 50;
+        }
+        .modal-content {
+            transform: translateY(-50px) scale(0.95);
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        .modal-backdrop.flex {
+            display: flex;
+            opacity: 1;
+        }
+        .modal-backdrop.flex .modal-content {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        .online { background-color: #22c55e; }
+        .offline { background-color: #ef4444; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        /* Print styles */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            body, html {
+                background: #fff;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                font-size: 10pt;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-gray-800">
+
+    <!-- Status Bar -->
+    <div id="status-bar" class="bg-gray-800 text-white p-2 text-center text-sm flex justify-center items-center gap-6 no-print shadow-md">
+        <div>
+            <span id="connection-status" class="flex items-center">
+                <span class="status-dot offline"></span>
+                <span>Connecting...</span>
+            </span>
+        </div>
+        <button id="install-btn" class="hidden bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-1 px-3 rounded text-xs">
+            Install App
+        </button>
+    </div>
+
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-6 lg:p-8">
+
+        <header class="mb-6 flex flex-col sm:flex-row justify-between items-start">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">Mazumder Pharmacy</h1>
+                    <p class="text-slate-500">Billing Software</p>
+                </div>
+            </div>
+            <div class="text-sm text-gray-500 mt-2 sm:mt-0 text-right">
+                <span id="current-date-time"></span>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="mb-6 bg-white/50 backdrop-blur-sm rounded-lg p-1 border border-slate-200/80 no-print flex space-x-2">
+            <button onclick="switchTab('billing')" class="tab-btn w-full text-center whitespace-nowrap py-3 px-1 font-medium text-sm rounded-md text-slate-600 tab-active">
+                <span class="flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                    Billing
+                </span>
+            </button>
+            <button onclick="switchTab('inventory')" class="tab-btn w-full text-center whitespace-nowrap py-3 px-1 font-medium text-sm rounded-md text-slate-600">
+                <span class="flex items-center justify-center gap-2">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    Inventory
+                </span>
+            </button>
+            <button onclick="switchTab('reports')" class="tab-btn w-full text-center whitespace-nowrap py-3 px-1 font-medium text-sm rounded-md text-slate-600">
+                <span class="flex items-center justify-center gap-2">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm3 2h4a1 1 0 011 1v2a1 1 0 01-1 1H8a1 1 0 01-1-1V6a1 1 0 011-1zm-1 6a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
+                    Sales Reports
+                </span>
+            </button>
+        </div>
+
+        <!-- Content Area -->
+        <main>
+            <!-- Billing Section -->
+            <div id="billing" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Left Side: Invoice -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg border border-slate-200/80">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h2 class="text-xl font-semibold text-slate-800">New Invoice</h2>
+                                <p class="text-sm text-gray-500">Invoice ID: <span id="invoice-id" class="font-mono"></span></p>
+                            </div>
+                            <input type="text" id="customer-name" placeholder="Customer Name (Optional)" class="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        </div>
+                        
+                        <!-- Search and Add Product -->
+                        <div class="relative mb-4">
+                            <input type="text" id="product-search" placeholder="Search for products by name..." class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            <svg class="w-5 h-5 text-gray-400 absolute top-3.5 left-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <div id="search-results" class="absolute z-10 w-full bg-white border border-gray-300 mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                        </div>
+
+                        <!-- Invoice Items Table -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Product</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-24">Price</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-32">Quantity</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-24">Total</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-16">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invoice-items" class="bg-white divide-y divide-gray-200">
+                                    <!-- Items will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <p id="empty-cart-message" class="text-center text-gray-500 py-8">Your cart is empty. Search for products to add them.</p>
+
+                    </div>
+                    <!-- Right Side: Summary & Actions -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200/80 h-fit">
+                        <h3 class="text-lg font-semibold border-b pb-3 mb-4 text-slate-800">Invoice Summary</h3>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between text-slate-600"><span>Subtotal</span><span id="subtotal">₹0.00</span></div>
+                            <div class="flex justify-between text-slate-600"><span>GST (5%)</span><span id="gst">₹0.00</span></div>
+                            <div class="flex justify-between font-bold text-lg border-t pt-3 text-slate-800"><span>Grand Total</span><span id="grand-total">₹0.00</span></div>
+                        </div>
+                        <div class="mt-6 space-y-3">
+                            <button onclick="App.saveAndPrintBill()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-sm flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" /></svg>
+                                Save & Print
+                            </button>
+                            <button onclick="App.saveBill()" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                                Save Bill
+                            </button>
+                            <button onclick="App.clearBill()" class="w-full bg-slate-200 text-slate-700 py-2 rounded-lg font-medium hover:bg-slate-300 transition">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Section -->
+            <div id="inventory" class="tab-content hidden">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200/80">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-slate-800">Inventory Management</h2>
+                        <button onclick="App.showProductModal()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition shadow-sm flex items-center justify-center gap-2">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                            Add New Product
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Product Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Price</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Stock</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Expiry Date</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-list" class="bg-white divide-y divide-gray-200">
+                                <!-- Inventory items will be injected here -->
+                            </tbody>
+                        </table>
+                        <p id="empty-inventory-message" class="text-center text-gray-500 py-8 hidden">No products found. Add a new product to get started.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Reports Section -->
+            <div id="reports" class="tab-content hidden">
+                 <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200/80">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-slate-800">Sales Reports</h2>
+                        <div class="flex items-center space-x-2">
+                             <input type="date" id="report-date-filter" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                             <button onclick="App.clearDateFilter()" class="bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm hover:bg-slate-300">Clear</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Invoice ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Customer</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Items</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reports-list" class="bg-white divide-y divide-gray-200">
+                                <!-- Reports will be injected here -->
+                            </tbody>
+                        </table>
+                        <p id="empty-reports-message" class="text-center text-gray-500 py-8 hidden">No sales records found.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="product-modal" class="modal-backdrop items-center justify-center">
+        <div class="modal-content bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-200">
+            <h2 id="modal-title" class="text-xl font-semibold mb-6 text-slate-800">Add New Product</h2>
+            <form id="product-form">
+                <input type="hidden" id="product-id">
+                <div class="space-y-4">
+                    <div>
+                        <label for="product-name" class="block text-sm font-medium text-gray-700">Product Name</label>
+                        <input type="text" id="product-name" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div>
+                        <label for="product-price" class="block text-sm font-medium text-gray-700">Price (₹)</label>
+                        <input type="number" id="product-price" min="0" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div>
+                        <label for="product-stock" class="block text-sm font-medium text-gray-700">Stock Quantity</label>
+                        <input type="number" id="product-stock" min="0" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div>
+                        <label for="product-expiry" class="block text-sm font-medium text-gray-700">Expiry Date</label>
+                        <input type="date" id="product-expiry" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" onclick="App.hideProductModal()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Custom Alert Modal -->
+    <div id="alert-modal" class="modal-backdrop items-center justify-center">
+        <div class="modal-content bg-white p-6 rounded-xl shadow-xl w-full max-w-sm text-center border border-slate-200">
+            <p id="alert-message" class="text-gray-800 mb-4"></p>
+            <button onclick="App.hideAlert()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">OK</button>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal-backdrop items-center justify-center">
+        <div class="modal-content bg-white p-6 rounded-xl shadow-xl w-full max-w-sm text-center border border-slate-200">
+            <p id="confirm-message" class="text-gray-800 mb-6"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-cancel-btn" class="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-300 transition">Cancel</button>
+                <button id="confirm-ok-btn" class="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Printable Invoice Area -->
+    <div id="print-area" class="p-8 bg-white"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getFirestore, 
+            enableIndexedDbPersistence, 
+            collection, 
+            onSnapshot,
+            addDoc,
+            updateDoc,
+            deleteDoc,
+            doc,
+            runTransaction,
+            Timestamp,
+            query,
+            where
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        // IMPORTANT: Replace with your project's Firebase configuration.
+        // You can find this in your Firebase project settings.
+       const firebaseConfig = {
+  apiKey: "AIzaSyCGqZWzzjyanwjfL2AKMgouSNglkzSALes",
+  authDomain: "pharmacy-a03ad.firebaseapp.com",
+  projectId: "pharmacy-a03ad",
+  storageBucket: "pharmacy-a03ad.firebasestorage.app",
+  messagingSenderId: "418332089175",
+  appId: "1:418332089175:web:65595eb4a6863ad8b2fc12"
+};
+        
+        // --- Tab Switching UI ---
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+        window.switchTab = (tabName) => {
+            tabs.forEach(tab => {
+                const textContent = tab.textContent.trim().toLowerCase();
+                if (textContent === tabName) {
+                    tab.classList.add('tab-active');
+                } else {
+                    tab.classList.remove('tab-active');
+                }
+            });
+            contents.forEach(content => {
+                if (content.id === tabName) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        }
+        
+        // --- Main Application Logic ---
+        const App = {
+            // --- State ---
+            state: {
+                products: [],
+                sales: [],
+                currentBill: {
+                    items: [],
+                    customerName: '',
+                    subtotal: 0,
+                    gst: 0,
+                    total: 0,
+                },
+                fuse: null,
+                db: null,
+                auth: null,
+                productsUnsubscribe: null,
+                salesUnsubscribe: null,
+            },
+
+            // --- Initialization ---
+            async init() {
+                this.setupPWA();
+                this.bindEvents();
+                this.updateDateTime();
+                setInterval(this.updateDateTime, 1000);
+                this.prepareNewBill();
+
+                try {
+                    const app = initializeApp(firebaseConfig);
+                    this.state.db = getFirestore(app);
+                    this.state.auth = getAuth(app);
+
+                    await enableIndexedDbPersistence(this.state.db);
+                    this.showAlert("Offline mode enabled. App will work without internet.");
+                } catch (err) {
+                    if (err.code == 'failed-precondition') {
+                        console.warn("Offline persistence failed: Multiple tabs open.");
+                        this.showAlert("Multiple tabs open. Offline mode might not work correctly.");
+                    } else if (err.code == 'unimplemented') {
+                        console.error("Offline persistence failed: Browser not supported.");
+                        this.showAlert("Your browser doesn't support offline mode.");
+                    } else {
+                        console.error("Firebase init error:", err);
+                        this.showAlert("Could not initialize database.");
+                    }
+                }
+
+                this.handleAuthentication();
+                this.handleConnectionStatus();
+            },
+
+            handleAuthentication() {
+                onAuthStateChanged(this.state.auth, user => {
+                    if (user) {
+                        console.log("User is signed in:", user.uid);
+                        this.setupFirestoreListeners();
+                    } else {
+                        signInAnonymously(this.state.auth).catch(error => {
+                            console.error("Anonymous sign-in failed:", error);
+                            this.showAlert("Could not connect to the service.");
+                        });
+                    }
+                });
+            },
+
+            setupFirestoreListeners() {
+                if (this.state.productsUnsubscribe) this.state.productsUnsubscribe();
+                this.state.productsUnsubscribe = onSnapshot(collection(this.state.db, "products"), (snapshot) => {
+                    this.state.products = [];
+                    snapshot.forEach(doc => {
+                        this.state.products.push({ id: doc.id, ...doc.data() });
+                    });
+                    this.renderInventory();
+                    this.initFuse();
+                });
+
+                if (this.state.salesUnsubscribe) this.state.salesUnsubscribe();
+                this.state.salesUnsubscribe = onSnapshot(collection(this.state.db, "sales"), (snapshot) => {
+                    this.state.sales = [];
+                     snapshot.forEach(doc => {
+                        const saleData = doc.data();
+                        // Convert Firestore Timestamps to JS Dates
+                        if (saleData.date && saleData.date.toDate) {
+                            saleData.date = saleData.date.toDate();
+                        }
+                        this.state.sales.push({ id: doc.id, ...saleData });
+                    });
+                    this.renderReports();
+                });
+            },
+
+            initFuse() {
+                const options = { keys: ['name'], includeScore: true, threshold: 0.4 };
+                this.state.fuse = new Fuse(this.state.products, options);
+            },
+            
+            updateDateTime() {
+                const now = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                document.getElementById('current-date-time').textContent = now.toLocaleDateString('en-IN', options);
+            },
+
+            // --- Event Binding ---
+            bindEvents() {
+                document.getElementById('product-form').addEventListener('submit', this.handleProductFormSubmit.bind(this));
+                document.getElementById('product-search').addEventListener('input', this.handleProductSearch.bind(this));
+                document.getElementById('report-date-filter').addEventListener('change', () => this.renderReports());
+            },
+            
+            // --- UI Rendering ---
+            renderInventory() {
+                const inventoryList = document.getElementById('inventory-list');
+                const emptyMsg = document.getElementById('empty-inventory-message');
+                inventoryList.innerHTML = '';
+                if (this.state.products.length === 0) {
+                    emptyMsg.classList.remove('hidden');
+                    return;
+                }
+                emptyMsg.classList.add('hidden');
+                
+                const sortedProducts = [...this.state.products].sort((a, b) => a.name.localeCompare(b.name));
+
+                sortedProducts.forEach(product => {
+                    const expiryDate = new Date(product.expiry);
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+                    const isExpired = product.expiry && expiryDate < today;
+
+                    const row = document.createElement('tr');
+                    row.className = isExpired ? 'bg-red-50' : (product.stock < 10 ? 'bg-yellow-50' : '');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">${product.name}</div>
+                            ${isExpired ? `<div class="text-xs text-red-600">Expired</div>` : ''}
+                            ${product.stock < 10 ? `<div class="text-xs text-yellow-600">Low Stock</div>` : ''}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₹${parseFloat(product.price).toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${product.stock < 10 ? 'font-bold text-yellow-700' : 'text-gray-700'}">${product.stock}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${isExpired ? 'font-bold text-red-700' : 'text-gray-700'}">${product.expiry || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="App.editProduct('${product.id}')" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</button>
+                            <button onclick="App.deleteProduct('${product.id}')" class="text-red-600 hover:text-red-900">Delete</button>
+                        </td>
+                    `;
+                    inventoryList.appendChild(row);
+                });
+            },
+
+            renderReports() {
+                const reportsList = document.getElementById('reports-list');
+                const emptyMsg = document.getElementById('empty-reports-message');
+                const dateFilterValue = document.getElementById('report-date-filter').value;
+                reportsList.innerHTML = '';
+                
+                let filteredSales = this.state.sales;
+                if(dateFilterValue) {
+                    const filterDate = new Date(dateFilterValue);
+                    const startOfDay = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate());
+                    const endOfDay = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate() + 1);
+                    
+                    filteredSales = this.state.sales.filter(sale => {
+                        const saleDate = new Date(sale.date);
+                        return saleDate >= startOfDay && saleDate < endOfDay;
+                    });
+                }
+
+                if (filteredSales.length === 0) {
+                    emptyMsg.classList.remove('hidden'); return;
+                }
+                emptyMsg.classList.add('hidden');
+
+                const sortedSales = [...filteredSales].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                sortedSales.forEach(sale => {
+                    const row = document.createElement('tr');
+                    const saleDate = new Date(sale.date);
+                    const formattedDate = saleDate.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                    
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">${sale.id.slice(-8)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formattedDate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sale.customerName || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${sale.items.length}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹${sale.total.toFixed(2)}</td>
+                    `;
+                    reportsList.appendChild(row);
+                });
+            },
+            
+            clearDateFilter() {
+                 document.getElementById('report-date-filter').value = '';
+                 this.renderReports();
+            },
+
+            // --- The rest of the App methods (renderCurrentBill, calculateTotals, handleProductFormSubmit, etc.) ---
+            // --- These methods will now use Firestore for data operations ---
+            
+            async handleProductFormSubmit(e) {
+                e.preventDefault();
+                const id = document.getElementById('product-id').value;
+                const product = {
+                    name: document.getElementById('product-name').value,
+                    price: parseFloat(document.getElementById('product-price').value),
+                    stock: parseInt(document.getElementById('product-stock').value),
+                    expiry: document.getElementById('product-expiry').value
+                };
+
+                try {
+                    if (id) { // Editing
+                        const productRef = doc(this.state.db, "products", id);
+                        await updateDoc(productRef, product);
+                        this.showAlert("Product updated successfully!");
+                    } else { // Adding new
+                        await addDoc(collection(this.state.db, "products"), product);
+                        this.showAlert("Product added successfully!");
+                    }
+                    this.hideProductModal();
+                } catch (error) {
+                    console.error("Error saving product:", error);
+                    this.showAlert("Error: Could not save product.");
+                }
+            },
+
+            editProduct(id) {
+                const product = this.state.products.find(p => p.id === id);
+                if (product) {
+                    document.getElementById('modal-title').textContent = 'Edit Product';
+                    document.getElementById('product-id').value = product.id;
+                    document.getElementById('product-name').value = product.name;
+                    document.getElementById('product-price').value = product.price;
+                    document.getElementById('product-stock').value = product.stock;
+                    document.getElementById('product-expiry').value = product.expiry;
+                    this.showProductModal();
+                }
+            },
+            
+            async deleteProduct(id) {
+                const confirmed = await this.showConfirm("Are you sure you want to delete this product?");
+                if(confirmed) {
+                    try {
+                        await deleteDoc(doc(this.state.db, "products", id));
+                        this.showAlert("Product deleted.");
+                    } catch (error) {
+                        console.error("Error deleting product:", error);
+                        this.showAlert("Error: Could not delete product.");
+                    }
+                }
+            },
+            
+            async saveBill(andPrint = false) {
+                if (this.state.currentBill.items.length === 0) {
+                    this.showAlert("Cannot save an empty bill.");
+                    return;
+                }
+
+                try {
+                    await runTransaction(this.state.db, async (transaction) => {
+                        const productRefs = this.state.currentBill.items.map(item => doc(this.state.db, "products", item.id));
+                        const productDocs = await Promise.all(productRefs.map(ref => transaction.get(ref)));
+
+                        // Check stock and prepare updates
+                        const updates = [];
+                        for (let i = 0; i < productDocs.length; i++) {
+                            const productDoc = productDocs[i];
+                            const item = this.state.currentBill.items[i];
+                            if (!productDoc.exists()) {
+                                throw `Product ${item.name} does not exist.`;
+                            }
+                            const newStock = productDoc.data().stock - item.quantity;
+                            if (newStock < 0) {
+                                throw `Not enough stock for ${item.name}. Only ${productDoc.data().stock} left.`;
+                            }
+                            updates.push({ ref: productRefs[i], newStock });
+                        }
+
+                        // Perform all stock updates
+                        updates.forEach(update => {
+                            transaction.update(update.ref, { stock: update.newStock });
+                        });
+                        
+                        // Create the sales record
+                        const salesCollection = collection(this.state.db, "sales");
+                        const newSale = {
+                            date: Timestamp.now(),
+                            customerName: document.getElementById('customer-name').value.trim(),
+                            items: this.state.currentBill.items,
+                            subtotal: this.state.currentBill.subtotal,
+                            gst: this.state.currentBill.gst,
+                            total: this.state.currentBill.total
+                        };
+                        transaction.set(doc(salesCollection), newSale);
+                        
+                        if (andPrint) {
+                            this.printBill({ ...newSale, id: `INV-${Date.now()}` }); // pass a temp id for printing
+                        }
+                    });
+
+                    this.showAlert(`Bill saved successfully!`);
+                    this.prepareNewBill();
+                } catch (error) {
+                    console.error("Transaction failed: ", error);
+                    this.showAlert(`Error saving bill: ${error.toString()}`);
+                }
+            },
+
+            // --- The rest of the billing and UI methods are largely the same ---
+            // (handleProductSearch, addProductToBill, updateBillItemQuantity, etc.)
+            // The only change is that their data source (this.state.products) is now reactive from Firestore.
+            
+            // --- Unchanged methods from previous version (or with minor tweaks) ---
+            renderCurrentBill() {
+                const billItems = document.getElementById('invoice-items');
+                const emptyMsg = document.getElementById('empty-cart-message');
+                billItems.innerHTML = '';
+
+                if (this.state.currentBill.items.length === 0) {
+                    emptyMsg.classList.remove('hidden'); billItems.classList.add('hidden');
+                } else {
+                    emptyMsg.classList.add('hidden'); billItems.classList.remove('hidden');
+                }
+
+                this.state.currentBill.items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₹${item.price.toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="number" value="${item.quantity}" min="1" max="${item.maxQuantity}" onchange="App.updateBillItemQuantity('${item.id}', this.value)" class="w-20 p-1 border border-gray-300 rounded-md">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹${(item.price * item.quantity).toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <button onclick="App.removeBillItem('${item.id}')" class="text-red-500 hover:text-red-700 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg></button>
+                        </td>
+                    `;
+                    billItems.appendChild(row);
+                });
+                this.calculateTotals();
+            },
+            calculateTotals() {
+                const subtotal = this.state.currentBill.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                const gst = subtotal * 0.05;
+                const total = subtotal + gst;
+
+                this.state.currentBill.subtotal = subtotal; this.state.currentBill.gst = gst; this.state.currentBill.total = total;
+
+                document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+                document.getElementById('gst').textContent = `₹${gst.toFixed(2)}`;
+                document.getElementById('grand-total').textContent = `₹${total.toFixed(2)}`;
+            },
+            handleProductSearch(e) {
+                const query = e.target.value;
+                const searchResultsEl = document.getElementById('search-results');
+                searchResultsEl.innerHTML = '';
+
+                if (query.length < 1) { searchResultsEl.classList.add('hidden'); return; }
+                if (!this.state.fuse) return;
+                
+                const results = this.state.fuse.search(query);
+                searchResultsEl.classList.remove('hidden');
+
+                if (results.length === 0) {
+                    searchResultsEl.innerHTML = `<div class="p-3 text-gray-500">No results found</div>`;
+                } else {
+                    results.slice(0, 10).forEach(result => {
+                        const product = result.item;
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'p-3 hover:bg-blue-50 cursor-pointer border-b';
+                        itemEl.innerHTML = `<div class="font-medium">${product.name}</div><div class="text-sm text-gray-500">Stock: ${product.stock} | Price: ₹${product.price.toFixed(2)}</div>`;
+                        itemEl.onclick = () => this.addProductToBill(product.id);
+                        searchResultsEl.appendChild(itemEl);
+                    });
+                }
+            },
+            addProductToBill(productId) {
+                document.getElementById('product-search').value = '';
+                document.getElementById('search-results').classList.add('hidden');
+                const product = this.state.products.find(p => p.id === productId);
+                const existingItem = this.state.currentBill.items.find(item => item.id === productId);
+                if(existingItem) {
+                    if (existingItem.quantity < product.stock) { this.updateBillItemQuantity(productId, existingItem.quantity + 1); } 
+                    else { this.showAlert(`Cannot add more of ${product.name}. Stock limit reached.`); }
+                    return;
+                }
+                if (product && product.stock > 0) {
+                    this.state.currentBill.items.push({ id: product.id, name: product.name, price: product.price, quantity: 1, maxQuantity: product.stock });
+                    this.renderCurrentBill();
+                } else { this.showAlert('Product is out of stock.'); }
+            },
+            updateBillItemQuantity(productId, newQuantity) {
+                const item = this.state.currentBill.items.find(item => item.id === productId);
+                const product = this.state.products.find(p => p.id === productId);
+                newQuantity = parseInt(newQuantity);
+
+                if (item && newQuantity > 0) {
+                    if (newQuantity > product.stock) {
+                        this.showAlert(`Only ${product.stock} units of ${product.name} available.`);
+                        item.quantity = product.stock;
+                    } else { item.quantity = newQuantity; }
+                    this.renderCurrentBill();
+                }
+            },
+            removeBillItem(productId) {
+                this.state.currentBill.items = this.state.currentBill.items.filter(item => item.id !== productId);
+                this.renderCurrentBill();
+            },
+            prepareNewBill() {
+                document.getElementById('invoice-id').textContent = `INV-${Date.now().toString().slice(-8)}`;
+                document.getElementById('customer-name').value = '';
+                this.state.currentBill = { items: [], customerName: '', subtotal: 0, gst: 0, total: 0, };
+                this.renderCurrentBill();
+            },
+            async clearBill() {
+                 if (await this.showConfirm('Are you sure you want to clear the current bill?')) {
+                    this.prepareNewBill();
+                }
+            },
+            saveAndPrintBill() { this.saveBill(true); },
+            printBill(sale) {
+                const printArea = document.getElementById('print-area');
+                const printDate = new Date(sale.date).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
+                let itemsHtml = sale.items.map(item => `
+                    <tr class="border-b border-slate-200">
+                        <td class="py-2 px-1">${item.name}</td>
+                        <td class="py-2 px-1 text-center">${item.quantity}</td>
+                        <td class="py-2 px-1 text-right">₹${item.price.toFixed(2)}</td>
+                        <td class="py-2 px-1 text-right">₹${(item.quantity * item.price).toFixed(2)}</td>
+                    </tr>`).join('');
+                
+                printArea.innerHTML = `
+                <div style="max-width: 800px; margin: 20px auto; padding: 20px; font-family: 'Inter', sans-serif; color: #1f2937; border: 1px solid #e5e7eb;">
+                    <!-- Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
+                        <div>
+                            <h1 style="font-size: 2.25rem; font-weight: 700; color: #3b82f6; margin: 0;">PharmaSoft</h1>
+                            <p style="margin: 0; color: #6b7280;">Your Trusted Pharmacy</p>
+                        </div>
+                        <h2 style="font-size: 1.5rem; font-weight: 600; color: #374151; margin: 0; text-align: right;">TAX INVOICE</h2>
+                    </div>
+                    <!-- Pharmacy & Customer Details -->
+                    <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.875rem;">
+                        <div>
+                            <p style="margin: 0;"><strong>From:</strong> PharmaSoft Pharmacy</p>
+                            <p style="margin: 0;">123 Health St, Wellness City</p>
+                            <p style="margin: 0;">Email: contact@pharmasoft.dev</p>
+                        </div>
+                        <div style="text-align: right;">
+                             <p style="margin: 0;"><strong>To:</strong> ${sale.customerName || 'Walk-in Customer'}</p>
+                             <p style="margin: 0;"><strong>Invoice ID:</strong> ${sale.id.slice(-8)}</p>
+                             <p style="margin: 0;"><strong>Date:</strong> ${printDate}</p>
+                        </div>
+                    </div>
+                    <!-- Items Table -->
+                    <div style="margin-top: 30px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                            <thead>
+                                <tr style="background-color: #f3f4f6;">
+                                    <th style="padding: 10px 4px; text-align: left; border-bottom: 1px solid #d1d5db;">Item Description</th>
+                                    <th style="padding: 10px 4px; text-align: center; border-bottom: 1px solid #d1d5db;">Qty</th>
+                                    <th style="padding: 10px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Rate</th>
+                                    <th style="padding: 10px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>${itemsHtml}</tbody>
+                        </table>
+                    </div>
+                    <!-- Totals Section -->
+                    <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                        <div style="width: 250px; font-size: 0.875rem;">
+                            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                                <span>Subtotal:</span>
+                                <span>₹${sale.subtotal.toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                                <span>GST (5%):</span>
+                                <span>₹${sale.gst.toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 5px; border-top: 2px solid #374151; font-size: 1.125rem; font-weight: 600;">
+                                <span>Grand Total:</span>
+                                <span>₹${sale.total.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Footer -->
+                    <div style="margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 15px; text-align: center; font-size: 0.75rem; color: #6b7280;">
+                        <p>Thank you for your purchase! | All items are non-returnable.</p>
+                        <p>This is a computer-generated invoice and does not require a signature.</p>
+                    </div>
+                </div>`;
+                window.print();
+            },
+            // --- Modal & UI Controls ---
+            showProductModal() { document.getElementById('product-modal').classList.add('flex'); },
+            hideProductModal() {
+                document.getElementById('product-modal').classList.remove('flex');
+                document.getElementById('product-form').reset();
+                document.getElementById('product-id').value = '';
+                document.getElementById('modal-title').textContent = 'Add New Product';
+            },
+            showAlert(message) {
+                document.getElementById('alert-message').textContent = message;
+                document.getElementById('alert-modal').classList.add('flex');
+            },
+            hideAlert() { document.getElementById('alert-modal').classList.remove('flex'); },
+            showConfirm(message) {
+                return new Promise(resolve => {
+                    const confirmModal = document.getElementById('confirm-modal');
+                    const msgEl = document.getElementById('confirm-message');
+                    const okBtn = document.getElementById('confirm-ok-btn');
+                    const cancelBtn = document.getElementById('confirm-cancel-btn');
+                    
+                    msgEl.textContent = message;
+                    confirmModal.classList.add('flex');
+                    
+                    const onOk = () => {
+                        confirmModal.classList.remove('flex');
+                        resolve(true);
+                        okBtn.removeEventListener('click', onOk);
+                        cancelBtn.removeEventListener('click', onCancel);
+                    };
+                    const onCancel = () => {
+                        confirmModal.classList.remove('flex');
+                        resolve(false);
+                        okBtn.removeEventListener('click', onOk);
+                        cancelBtn.removeEventListener('click', onCancel);
+                    };
+                    
+                    okBtn.addEventListener('click', onOk);
+                    cancelBtn.addEventListener('click', onCancel);
+                });
+            },
+            handleConnectionStatus() {
+                const statusEl = document.getElementById('connection-status');
+                const dot = statusEl.querySelector('.status-dot');
+                const text = statusEl.querySelector('span:last-child');
+                
+                const updateOnlineStatus = () => {
+                    if (navigator.onLine) {
+                        dot.classList.remove('offline');
+                        dot.classList.add('online');
+                        text.textContent = 'Online';
+                    } else {
+                        dot.classList.remove('online');
+                        dot.classList.add('offline');
+                        text.textContent = 'Offline';
+                    }
+                };
+                window.addEventListener('online', updateOnlineStatus);
+                window.addEventListener('offline', updateOnlineStatus);
+                updateOnlineStatus();
+            },
+            // --- PWA Setup ---
+            setupPWA() {
+                // 1. Create and link manifest
+                const manifest = {
+                    "name": "PharmaSoft PWA",
+                    "short_name": "PharmaSoft",
+                    "start_url": ".",
+                    "display": "standalone",
+                    "background_color": "#f9fafb",
+                    "theme_color": "#3b82f6",
+                    "description": "Offline-first Pharmacy Billing Application",
+                    "icons": [
+                        { "src": "https://placehold.co/192x192/3b82f6/ffffff?text=PS", "sizes": "192x192", "type": "image/png" },
+                        { "src": "https://placehold.co/512x512/3b82f6/ffffff?text=PS", "sizes": "512x512", "type": "image/png" }
+                    ]
+                };
+                const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+                const manifestURL = URL.createObjectURL(manifestBlob);
+                document.querySelector('#manifest-placeholder').setAttribute('href', manifestURL);
+
+                // 2. Register Service Worker
+                if ('serviceWorker' in navigator) {
+                    const swCode = `
+                        const CACHE_NAME = 'pharmasoft-pwa-v1';
+                        const urlsToCache = [
+                            '/',
+                            './pharmacy-billing.html', // Caches itself
+                        ];
+                        self.addEventListener('install', event => {
+                            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
+                        });
+                        self.addEventListener('fetch', event => {
+                            event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
+                        });
+                    `;
+                    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                    const swURL = URL.createObjectURL(swBlob);
+                    navigator.serviceWorker.register(swURL)
+                        .then(reg => console.log('Service Worker registered.', reg))
+                        .catch(err => console.error('Service Worker registration failed:', err));
+                }
+                
+                // 3. Handle Install Prompt
+                let deferredPrompt;
+                const installBtn = document.getElementById('install-btn');
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    installBtn.classList.remove('hidden');
+                });
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        console.log(`User response to the install prompt: ${outcome}`);
+                        deferredPrompt = null;
+                        installBtn.classList.add('hidden');
+                    }
+                });
+            }
+        };
+
+        // --- Initialize App on DOM Load ---
+        window.App = App;
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+    </script>
+</body>
+</html>
+
+
