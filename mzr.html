@@ -810,7 +810,18 @@
             saveAndPrintBill() { this.saveBill(true); },
             printBill(sale) {
                 const printArea = document.getElementById('print-area');
-                const printDate = new Date(sale.date).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
+                
+                // FIX: Correctly handle both Firestore Timestamps and regular JS Date objects.
+                const saleDate = sale.date && sale.date.toDate ? sale.date.toDate() : new Date(sale.date);
+
+                // Add a check for invalid dates to prevent errors.
+                if (isNaN(saleDate.getTime())) {
+                    console.error("Invalid date provided to printBill:", sale.date);
+                    this.showAlert("Could not print bill due to an invalid date format.");
+                    return;
+                }
+
+                const printDate = saleDate.toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
                 let itemsHtml = sale.items.map(item => `
                     <tr class="border-b border-slate-200">
                         <td class="py-2 px-1">${item.name}</td>
@@ -997,4 +1008,5 @@
     </script>
 </body>
 </html>
+
 
